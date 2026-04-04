@@ -51,12 +51,31 @@ try {
   }
 } catch { /* first-run write may fail on read-only FS — fall through to defaults */ }
 
+// ── NekoFree: prompt for API key if missing ──────────────────────────────────
+// eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
+if (!_nfConfig.apiKey && !process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
+  const _rl = require('node:readline').createInterface({ input: process.stdin, output: process.stdout });
+  const _nfAsk = (q: string): Promise<string> => new Promise(r => _rl.question(q, (a: string) => { _rl.close(); r(a.trim()); }));
+  // eslint-disable-next-line custom-rules/no-top-level-side-effects
+  const _nfKey = await _nfAsk('\x1b[36m[nekofree]\x1b[0m API-ключ не найден. Введите ANTHROPIC_API_KEY: ');
+  if (_nfKey) {
+    _nfConfig.apiKey = _nfKey;
+    try {
+      const _nfCurrent = _nfExists(_nfConfigPath) ? JSON.parse(_nfReadSync(_nfConfigPath, 'utf-8')) : {};
+      _nfWriteSync(_nfConfigPath, JSON.stringify({ ..._nfCurrent, apiKey: _nfKey }, null, 2) + '\n');
+    } catch { /* ignore write error */ }
+  } else {
+    process.stderr.write('\x1b[33m[nekofree]\x1b[0m Ключ не введён. Установите ANTHROPIC_API_KEY или отредактируйте ~/.nekofree/config.json\n');
+    process.exit(1);
+  }
+}
+
 // eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
 if (!process.env.ANTHROPIC_BASE_URL) {
   process.env.ANTHROPIC_BASE_URL = _nfConfig.baseUrl;
 }
 // eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
-if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
+if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN && _nfConfig.apiKey) {
   process.env.ANTHROPIC_API_KEY = _nfConfig.apiKey;
 }
 // eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level

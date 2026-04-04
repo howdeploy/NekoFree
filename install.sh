@@ -123,14 +123,14 @@ build_binary() {
   info "Building NekoFree (all experimental features enabled)..."
   cd "$INSTALL_DIR"
   bun run build:dev:full
-  ok "Binary built: $INSTALL_DIR/cli-dev"
+  ok "Binary built: $INSTALL_DIR/nekofree-dev"
 }
 
 link_binary() {
   local link_dir="$HOME/.local/bin"
   mkdir -p "$link_dir"
 
-  ln -sf "$INSTALL_DIR/cli-dev" "$link_dir/nekofree"
+  ln -sf "$INSTALL_DIR/nekofree-dev" "$link_dir/nekofree"
   ok "Symlinked: $link_dir/nekofree"
 
   if ! echo "$PATH" | tr ':' '\n' | grep -qx "$link_dir"; then
@@ -167,13 +167,11 @@ printf "  ${BOLD}Run it:${RESET}\n"
 printf "    ${CYAN}nekofree${RESET}                           # interactive REPL\n"
 printf "    ${CYAN}nekofree -p \"your prompt\"${RESET}           # one-shot mode\n"
 echo ""
-printf "  ${BOLD}Set your API key:${RESET}\n"
-printf "    ${CYAN}export ANTHROPIC_API_KEY=\"sk-ant-...\"${RESET}\n"
-echo ""
-printf "  ${BOLD}Or log in with Claude.ai:${RESET}\n"
-printf "    ${CYAN}nekofree /login${RESET}\n"
+printf "  ${BOLD}Set your API key (edit config or env):${RESET}\n"
+printf "    ${CYAN}export ANTHROPIC_API_KEY=\"your-key\"${RESET}\n"
+printf "    ${DIM}or edit ~/.nekofree/config.json → apiKey${RESET}\n"
 echo ""
 printf "  ${DIM}Source: $INSTALL_DIR${RESET}\n"
-printf "  ${DIM}Binary: $INSTALL_DIR/cli-dev${RESET}\n"
+printf "  ${DIM}Binary: $INSTALL_DIR/nekofree-dev${RESET}\n"
 printf "  ${DIM}Link:   ~/.local/bin/nekofree${RESET}\n"
 echo ""
