@@ -254,7 +254,7 @@ export async function setup(
       if (tmuxResult.created) {
         // biome-ignore lint/suspicious/noConsole:: intentional console output
         console.log(
-          chalk.green(
+          chalk.blue(
             `Created tmux session: ${chalk.bold(tmuxSessionName)}\nTo attach: ${chalk.bold(`tmux attach -t ${tmuxSessionName}`)}`,
           ),
         )
@@ -362,6 +362,9 @@ export async function setup(
     void import('./utils/sessionFileAccessHooks.js').then(m =>
       m.registerSessionFileAccessHooks(),
     ) // Register session file access analytics hooks
+    void import('./utils/readOnceHooks.js').then(m =>
+      m.registerReadOnceHooks(),
+    ) // NekoFree: prevent redundant file reads, save tokens
     if (feature('TEAMMEM')) {
       void import('./services/teamMemorySync/watcher.js').then(m =>
         m.startTeamMemoryWatcher(),

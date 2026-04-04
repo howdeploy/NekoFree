@@ -67,7 +67,7 @@ export function isAutoMemoryEnabled(): boolean {
  * directly in an `if` condition.
  */
 export function isExtractModeActive(): boolean {
-  if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_passport_quail', false)) {
+  if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_passport_quail', true)) {
     return false
   }
   return (
@@ -80,7 +80,7 @@ export function isExtractModeActive(): boolean {
  * Returns the base directory for persistent memory storage.
  * Resolution order:
  *   1. CLAUDE_CODE_REMOTE_MEMORY_DIR env var (explicit override, set in CCR)
- *   2. ~/.claude (default config home)
+ *   2. ~/.nekofree (default config home)
  */
 export function getMemoryBaseDir(): string {
   if (process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR) {

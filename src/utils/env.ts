@@ -12,17 +12,25 @@ type Platform = 'win32' | 'darwin' | 'linux'
 
 // Config and data paths
 export const getGlobalClaudeFile = memoize((): string => {
-  // Legacy fallback for backwards compatibility
-  if (
-    getFsImplementation().existsSync(
-      join(getClaudeConfigHomeDir(), '.config.json'),
-    )
-  ) {
-    return join(getClaudeConfigHomeDir(), '.config.json')
+  const suffix = fileSuffixForOauthConfig()
+
+  // Primary: config inside ~/.nekofree/ directory
+  const inDirPath = join(getClaudeConfigHomeDir(), `config${suffix}.json`)
+  if (getFsImplementation().existsSync(inDirPath)) {
+    return inDirPath
   }
 
-  const filename = `.claude${fileSuffixForOauthConfig()}.json`
-  return join(process.env.CLAUDE_CONFIG_DIR || homedir(), filename)
+  // Legacy fallback: ~/.nekofree.json in home root (auto-migrated on first write)
+  const legacyPath = join(
+    process.env.CLAUDE_CONFIG_DIR || homedir(),
+    `.nekofree${suffix}.json`,
+  )
+  if (getFsImplementation().existsSync(legacyPath)) {
+    return legacyPath
+  }
+
+  // New installs: create inside ~/.nekofree/
+  return inDirPath
 })
 
 const hasInternetAccess = memoize(async (): Promise<boolean> => {

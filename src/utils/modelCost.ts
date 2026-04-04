@@ -126,10 +126,19 @@ export const MODEL_COSTS: Record<ModelShortName, ModelCosts> = {
 }
 
 /**
- * Calculates the USD cost based on token usage and model cost configuration
+ * NekoFree: Nekocode gateway cost multiplier.
+ * Nekocode quota uses the same token weights as Anthropic pricing but charges
+ * $0.04 per 1M quota (at 500M tier) instead of $1 per 1M.
+ * Set to 1.0 to use standard Anthropic pricing (e.g. when using direct API key).
+ */
+const NEKOCODE_COST_MULTIPLIER = 0.04
+
+/**
+ * Calculates the USD cost based on token usage and model cost configuration.
+ * Applies Nekocode gateway pricing multiplier for accurate cost display.
  */
 function tokensToUSDCost(modelCosts: ModelCosts, usage: Usage): number {
-  return (
+  const rawCost =
     (usage.input_tokens / 1_000_000) * modelCosts.inputTokens +
     (usage.output_tokens / 1_000_000) * modelCosts.outputTokens +
     ((usage.cache_read_input_tokens ?? 0) / 1_000_000) *
@@ -138,7 +147,7 @@ function tokensToUSDCost(modelCosts: ModelCosts, usage: Usage): number {
       modelCosts.promptCacheWriteTokens +
     (usage.server_tool_use?.web_search_requests ?? 0) *
       modelCosts.webSearchRequests
-  )
+  return rawCost * NEKOCODE_COST_MULTIPLIER
 }
 
 export function getModelCosts(model: string, usage: Usage): ModelCosts {

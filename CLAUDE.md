@@ -2,29 +2,33 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project identity
+
+This project is **NekoFree** — a fork of Claude Code with pre-configured API gateway defaults (nekocode.app). Users can override the API key, base URL, and model via `~/.nekofree.json` or environment variables.
+
 ## Common commands
 
 ```bash
 # Install dependencies
 bun install
 
-# Standard build (./cli)
+# Standard build (./nekofree)
 bun run build
 
-# Dev build (./cli-dev)
+# Dev build (./nekofree-dev)
 bun run build:dev
 
-# Dev build with all experimental features (./cli-dev)
+# Dev build with all experimental features (./nekofree-dev)
 bun run build:dev:full
 
-# Compiled build (./dist/cli)
+# Compiled build (./dist/nekofree)
 bun run compile
 
 # Run from source without compiling
 bun run dev
 ```
 
-Run the built binary with `./cli` or `./cli-dev`. Set `ANTHROPIC_API_KEY` in the environment or use OAuth via `./cli /login`.
+Run the built binary with `./nekofree` or `./nekofree-dev`. Set `ANTHROPIC_API_KEY` in the environment or use OAuth via `./nekofree /login`.
 
 ## High-level architecture
 

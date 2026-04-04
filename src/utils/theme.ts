@@ -117,7 +117,7 @@ const lightTheme: Theme = {
   autoAccept: 'rgb(135,0,255)', // Electric violet
   bashBorder: 'rgb(255,0,135)', // Vibrant pink
   claude: 'rgb(215,119,87)', // Claude orange
-  startupAccent: 'rgb(124,176,133)', // Free Code pastel green
+  startupAccent: 'rgb(120,160,210)', // NekoFree pastel blue
   claudeShimmer: 'rgb(245,149,117)', // Lighter claude orange for shimmer effect
   claudeBlue_FOR_SYSTEM_SPINNER: 'rgb(87,105,247)', // Medium blue for system spinner
   claudeBlueShimmer_FOR_SYSTEM_SPINNER: 'rgb(117,135,255)', // Lighter blue for system spinner shimmer
@@ -125,8 +125,8 @@ const lightTheme: Theme = {
   permissionShimmer: 'rgb(137,155,255)', // Lighter blue for shimmer effect
   planMode: 'rgb(0,102,102)', // Muted teal
   ide: 'rgb(71,130,200)', // Muted blue
-  promptBorder: 'rgb(153,153,153)', // Medium gray
-  promptBorderShimmer: 'rgb(183,183,183)', // Lighter gray for shimmer effect
+  promptBorder: 'rgb(150,185,235)', // NekoFree pastel blue
+  promptBorderShimmer: 'rgb(180,205,245)', // NekoFree pastel blue shimmer
   text: 'rgb(0,0,0)', // Black
   inverseText: 'rgb(255,255,255)', // White
   inactive: 'rgb(102,102,102)', // Dark gray
@@ -160,7 +160,7 @@ const lightTheme: Theme = {
   // Chrome colors
   chromeYellow: 'rgb(251,188,4)', // Chrome yellow
   // TUI V2 colors
-  clawd_body: 'rgb(124,176,133)',
+  clawd_body: 'rgb(120,160,210)',
   clawd_background: 'rgb(0,0,0)',
   userMessageBackground: 'rgb(240, 240, 240)', // Slightly darker grey for optimal contrast
   userMessageBackgroundHover: 'rgb(252, 252, 252)', // ≥250 to quantize distinct from base at 256-color level
@@ -200,7 +200,7 @@ const lightAnsiTheme: Theme = {
   autoAccept: 'ansi:magenta',
   bashBorder: 'ansi:magenta',
   claude: 'ansi:redBright',
-  startupAccent: 'ansi:greenBright',
+  startupAccent: 'ansi:blueBright',
   claudeShimmer: 'ansi:yellowBright',
   claudeBlue_FOR_SYSTEM_SPINNER: 'ansi:blue',
   claudeBlueShimmer_FOR_SYSTEM_SPINNER: 'ansi:blueBright',
@@ -208,8 +208,8 @@ const lightAnsiTheme: Theme = {
   permissionShimmer: 'ansi:blueBright',
   planMode: 'ansi:cyan',
   ide: 'ansi:blueBright',
-  promptBorder: 'ansi:white',
-  promptBorderShimmer: 'ansi:whiteBright',
+  promptBorder: 'ansi:blueBright',
+  promptBorderShimmer: 'ansi:cyanBright',
   text: 'ansi:black',
   inverseText: 'ansi:white',
   inactive: 'ansi:blackBright',
@@ -243,7 +243,7 @@ const lightAnsiTheme: Theme = {
   // Chrome colors
   chromeYellow: 'ansi:yellow', // Chrome yellow
   // TUI V2 colors
-  clawd_body: 'ansi:greenBright',
+  clawd_body: 'ansi:blueBright',
   clawd_background: 'ansi:black',
   userMessageBackground: 'ansi:white',
   userMessageBackgroundHover: 'ansi:whiteBright',
@@ -282,7 +282,7 @@ const darkAnsiTheme: Theme = {
   autoAccept: 'ansi:magentaBright',
   bashBorder: 'ansi:magentaBright',
   claude: 'ansi:redBright',
-  startupAccent: 'ansi:greenBright',
+  startupAccent: 'ansi:blueBright',
   claudeShimmer: 'ansi:yellowBright',
   claudeBlue_FOR_SYSTEM_SPINNER: 'ansi:blueBright',
   claudeBlueShimmer_FOR_SYSTEM_SPINNER: 'ansi:blueBright',
@@ -290,8 +290,8 @@ const darkAnsiTheme: Theme = {
   permissionShimmer: 'ansi:blueBright',
   planMode: 'ansi:cyanBright',
   ide: 'ansi:blue',
-  promptBorder: 'ansi:white',
-  promptBorderShimmer: 'ansi:whiteBright',
+  promptBorder: 'ansi:blueBright',
+  promptBorderShimmer: 'ansi:cyanBright',
   text: 'ansi:whiteBright',
   inverseText: 'ansi:black',
   inactive: 'ansi:white',
@@ -325,7 +325,7 @@ const darkAnsiTheme: Theme = {
   // Chrome colors
   chromeYellow: 'ansi:yellowBright', // Chrome yellow
   // TUI V2 colors
-  clawd_body: 'ansi:greenBright',
+  clawd_body: 'ansi:blueBright',
   clawd_background: 'ansi:black',
   userMessageBackground: 'ansi:blackBright',
   userMessageBackgroundHover: 'ansi:white',
@@ -364,7 +364,7 @@ const lightDaltonizedTheme: Theme = {
   autoAccept: 'rgb(135,0,255)', // Electric violet
   bashBorder: 'rgb(0,102,204)', // Blue instead of pink
   claude: 'rgb(255,153,51)', // Orange adjusted for deuteranopia
-  startupAccent: 'rgb(124,176,133)', // Free Code pastel green
+  startupAccent: 'rgb(120,160,210)', // NekoFree pastel blue
   claudeShimmer: 'rgb(255,183,101)', // Lighter orange for shimmer effect
   claudeBlue_FOR_SYSTEM_SPINNER: 'rgb(51,102,255)', // Bright blue for system spinner
   claudeBlueShimmer_FOR_SYSTEM_SPINNER: 'rgb(101,152,255)', // Lighter bright blue for system spinner shimmer
@@ -372,8 +372,8 @@ const lightDaltonizedTheme: Theme = {
   permissionShimmer: 'rgb(101,152,255)', // Lighter bright blue for shimmer
   planMode: 'rgb(51,102,102)', // Muted blue-gray (works for color-blind)
   ide: 'rgb(71,130,200)', // Muted blue
-  promptBorder: 'rgb(153,153,153)', // Medium gray
-  promptBorderShimmer: 'rgb(183,183,183)', // Lighter gray for shimmer
+  promptBorder: 'rgb(150,185,235)', // NekoFree pastel blue
+  promptBorderShimmer: 'rgb(180,205,245)', // NekoFree pastel blue shimmer
   text: 'rgb(0,0,0)', // Black
   inverseText: 'rgb(255,255,255)', // White
   inactive: 'rgb(102,102,102)', // Dark gray
@@ -407,7 +407,7 @@ const lightDaltonizedTheme: Theme = {
   // Chrome colors
   chromeYellow: 'rgb(251,188,4)', // Chrome yellow
   // TUI V2 colors
-  clawd_body: 'rgb(124,176,133)',
+  clawd_body: 'rgb(120,160,210)',
   clawd_background: 'rgb(0,0,0)',
   userMessageBackground: 'rgb(220, 220, 220)', // Slightly darker grey for optimal contrast
   userMessageBackgroundHover: 'rgb(232, 232, 232)', // ≥230 to quantize distinct from base at 256-color level
@@ -446,7 +446,7 @@ const darkTheme: Theme = {
   autoAccept: 'rgb(175,135,255)', // Electric violet
   bashBorder: 'rgb(253,93,177)', // Bright pink
   claude: 'rgb(215,119,87)', // Claude orange
-  startupAccent: 'rgb(184,225,174)', // Free Code pastel green
+  startupAccent: 'rgb(150,185,235)', // NekoFree pastel blue
   claudeShimmer: 'rgb(235,159,127)', // Lighter claude orange for shimmer effect
   claudeBlue_FOR_SYSTEM_SPINNER: 'rgb(147,165,255)', // Blue for system spinner
   claudeBlueShimmer_FOR_SYSTEM_SPINNER: 'rgb(177,195,255)', // Lighter blue for system spinner shimmer
@@ -454,8 +454,8 @@ const darkTheme: Theme = {
   permissionShimmer: 'rgb(207,215,255)', // Lighter blue-purple for shimmer
   planMode: 'rgb(72,150,140)', // Muted sage green
   ide: 'rgb(71,130,200)', // Muted blue
-  promptBorder: 'rgb(136,136,136)', // Medium gray
-  promptBorderShimmer: 'rgb(166,166,166)', // Lighter gray for shimmer
+  promptBorder: 'rgb(150,185,235)', // NekoFree pastel blue
+  promptBorderShimmer: 'rgb(180,205,245)', // NekoFree pastel blue shimmer
   text: 'rgb(255,255,255)', // White
   inverseText: 'rgb(0,0,0)', // Black
   inactive: 'rgb(153,153,153)', // Light gray
@@ -489,7 +489,7 @@ const darkTheme: Theme = {
   // Chrome colors
   chromeYellow: 'rgb(251,188,4)', // Chrome yellow
   // TUI V2 colors
-  clawd_body: 'rgb(184,225,174)',
+  clawd_body: 'rgb(150,185,235)',
   clawd_background: 'rgb(0,0,0)',
   userMessageBackground: 'rgb(55, 55, 55)', // Lighter grey for better visual contrast
   userMessageBackgroundHover: 'rgb(70, 70, 70)',
@@ -528,7 +528,7 @@ const darkDaltonizedTheme: Theme = {
   autoAccept: 'rgb(175,135,255)', // Electric violet
   bashBorder: 'rgb(51,153,255)', // Bright blue
   claude: 'rgb(255,153,51)', // Orange adjusted for deuteranopia
-  startupAccent: 'rgb(184,225,174)', // Free Code pastel green
+  startupAccent: 'rgb(150,185,235)', // NekoFree pastel blue
   claudeShimmer: 'rgb(255,183,101)', // Lighter orange for shimmer effect
   claudeBlue_FOR_SYSTEM_SPINNER: 'rgb(153,204,255)', // Light blue for system spinner
   claudeBlueShimmer_FOR_SYSTEM_SPINNER: 'rgb(183,224,255)', // Lighter blue for system spinner shimmer
@@ -536,8 +536,8 @@ const darkDaltonizedTheme: Theme = {
   permissionShimmer: 'rgb(183,224,255)', // Lighter blue for shimmer
   planMode: 'rgb(102,153,153)', // Muted gray-teal (works for color-blind)
   ide: 'rgb(71,130,200)', // Muted blue
-  promptBorder: 'rgb(136,136,136)', // Medium gray
-  promptBorderShimmer: 'rgb(166,166,166)', // Lighter gray for shimmer
+  promptBorder: 'rgb(150,185,235)', // NekoFree pastel blue
+  promptBorderShimmer: 'rgb(180,205,245)', // NekoFree pastel blue shimmer
   text: 'rgb(255,255,255)', // White
   inverseText: 'rgb(0,0,0)', // Black
   inactive: 'rgb(153,153,153)', // Light gray
@@ -571,7 +571,7 @@ const darkDaltonizedTheme: Theme = {
   // Chrome colors
   chromeYellow: 'rgb(251,188,4)', // Chrome yellow
   // TUI V2 colors
-  clawd_body: 'rgb(184,225,174)',
+  clawd_body: 'rgb(150,185,235)',
   clawd_background: 'rgb(0,0,0)',
   userMessageBackground: 'rgb(55, 55, 55)', // Lighter grey for better visual contrast
   userMessageBackgroundHover: 'rgb(70, 70, 70)',

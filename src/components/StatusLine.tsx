@@ -21,9 +21,10 @@ import { getCwd } from '../utils/cwd.js';
 import { logForDebugging } from '../utils/debug.js';
 import { isFullscreenEnvEnabled } from '../utils/fullscreen.js';
 import { createBaseHookInput, executeStatusLineCommand } from '../utils/hooks.js';
-import { getLastAssistantMessage } from '../utils/messages.js';
+import { getLastAssistantMessage, getMessagesAfterCompactBoundary } from '../utils/messages.js';
 import { getRuntimeMainLoopModel, type ModelName, renderModelName } from '../utils/model/model.js';
-import { getCurrentSessionTitle } from '../utils/sessionStorage.js';
+import { cacheSessionTitle, getCurrentSessionTitle } from '../utils/sessionStorage.js';
+import { generateSessionName } from '../commands/rename/generateSessionName.js';
 import { doesMostRecentAssistantMessageExceed200k, getCurrentUsage } from '../utils/tokens.js';
 import { getCurrentWorktreeSession } from '../utils/worktree.js';
 import { isVimModeEnabled } from './PromptInput/utils.js';
@@ -31,9 +32,10 @@ export function statusLineShouldDisplay(settings: ReadonlySettings): boolean {
   // Assistant mode: statusline fields (model, permission mode, cwd) reflect the
   // REPL/daemon process, not what the agent child is actually running. Hide it.
   if (feature('KAIROS') && getKairosActive()) return false;
-  return settings?.statusLine !== undefined;
+  // NekoFree: always show statusline (built-in mascot fallback exists)
+  return true;
 }
-function buildStatusLineCommandInput(permissionMode: PermissionMode, exceeds200kTokens: boolean, settings: ReadonlySettings, messages: Message[], addedDirs: string[], mainLoopModel: ModelName, vimMode?: VimMode): StatusLineCommandInput {
+function buildStatusLineCommandInput(permissionMode: PermissionMode, exceeds200kTokens: boolean, settings: ReadonlySettings, messages: Message[], addedDirs: string[], mainLoopModel: ModelName, vimMode?: VimMode, activity?: string): StatusLineCommandInput {
   const agentType = getMainThreadAgentType();
   const worktreeSession = getCurrentWorktreeSession();
   const runtimeModel = getRuntimeMainLoopModel({
@@ -122,7 +124,9 @@ function buildStatusLineCommandInput(permissionMode: PermissionMode, exceeds200k
         original_cwd: worktreeSession.originalCwd,
         original_branch: worktreeSession.originalBranch
       }
-    })
+    }),
+    // NekoFree: activity phase for statusline mascot sprite
+    activity: activity || 'idle'
   };
 }
 type Props = {
@@ -144,6 +148,7 @@ function StatusLineInner({
   const permissionMode = useAppState(s => s.toolPermissionContext.mode);
   const additionalWorkingDirectories = useAppState(s => s.toolPermissionContext.additionalWorkingDirectories);
   const statusLineText = useAppState(s => s.statusLineText);
+  const nekoActivity = useAppState(s => s.nekoActivity);
   const setAppState = useSetAppState();
   const settings = useSettings();
   const {
@@ -165,6 +170,8 @@ function StatusLineInner({
   addedDirsRef.current = additionalWorkingDirectories;
   const mainLoopModelRef = useRef(mainLoopModel);
   mainLoopModelRef.current = mainLoopModel;
+  const nekoActivityRef = useRef(nekoActivity);
+  nekoActivityRef.current = nekoActivity;
 
   // Track previous state to detect changes and cache expensive calculations
   const previousStateRef = useRef<{
@@ -173,12 +180,14 @@ function StatusLineInner({
     permissionMode: PermissionMode;
     vimMode: VimMode | undefined;
     mainLoopModel: ModelName;
+    nekoActivity: string;
   }>({
     messageId: null,
     exceeds200kTokens: false,
     permissionMode,
     vimMode,
-    mainLoopModel
+    mainLoopModel,
+    nekoActivity: nekoActivity ?? 'idle'
   });
 
   // Debounce timer ref
@@ -206,7 +215,7 @@ function StatusLineInner({
         previousStateRef.current.messageId = currentMessageId;
         previousStateRef.current.exceeds200kTokens = exceeds200kTokens;
       }
-      const statusInput = buildStatusLineCommandInput(permissionModeRef.current, exceeds200kTokens, settingsRef.current, msgs, Array.from(addedDirsRef.current.keys()), mainLoopModelRef.current, vimModeRef.current);
+      const statusInput = buildStatusLineCommandInput(permissionModeRef.current, exceeds200kTokens, settingsRef.current, msgs, Array.from(addedDirsRef.current.keys()), mainLoopModelRef.current, vimModeRef.current, nekoActivityRef.current);
       const text = await executeStatusLineCommand(statusInput, controller.signal, undefined, logResult);
       if (!controller.signal.aborted) {
         setAppState(prev => {
@@ -233,17 +242,46 @@ function StatusLineInner({
     }, 300, debounceTimerRef, doUpdate);
   }, [doUpdate]);
 
-  // Only trigger update when assistant message, permission mode, vim mode, or model actually changes
+  // Only trigger update when assistant message, permission mode, vim mode, model, or activity actually changes
   useEffect(() => {
-    if (lastAssistantMessageId !== previousStateRef.current.messageId || permissionMode !== previousStateRef.current.permissionMode || vimMode !== previousStateRef.current.vimMode || mainLoopModel !== previousStateRef.current.mainLoopModel) {
+    if (lastAssistantMessageId !== previousStateRef.current.messageId || permissionMode !== previousStateRef.current.permissionMode || vimMode !== previousStateRef.current.vimMode || mainLoopModel !== previousStateRef.current.mainLoopModel || nekoActivity !== previousStateRef.current.nekoActivity) {
       // Don't update messageId here — let doUpdate handle it so
       // exceeds200kTokens is recalculated with the latest messages
       previousStateRef.current.permissionMode = permissionMode;
       previousStateRef.current.vimMode = vimMode;
       previousStateRef.current.mainLoopModel = mainLoopModel;
+      previousStateRef.current.nekoActivity = nekoActivity ?? 'idle';
       scheduleUpdate();
     }
-  }, [lastAssistantMessageId, permissionMode, vimMode, mainLoopModel, scheduleUpdate]);
+  }, [lastAssistantMessageId, permissionMode, vimMode, mainLoopModel, nekoActivity, scheduleUpdate]);
+
+  // NekoFree: auto-rename session based on conversation context.
+  // Fires at message #2 (quick first topic) and every 8 messages after.
+  const autoRenameCountRef = useRef(0);
+  const autoRenameInFlightRef = useRef(false);
+  useEffect(() => {
+    if (!lastAssistantMessageId) return;
+    autoRenameCountRef.current++;
+    const count = autoRenameCountRef.current;
+    if (count < 2) return;
+    if (count !== 2 && (count - 2) % 8 !== 0) return;
+    if (autoRenameInFlightRef.current) return;
+    autoRenameInFlightRef.current = true;
+    const msgs = messagesRef.current;
+    void generateSessionName(
+      getMessagesAfterCompactBoundary(msgs),
+      new AbortController().signal,
+    ).then(name => {
+      if (name) {
+        cacheSessionTitle(name);
+        scheduleUpdate();
+      }
+    }).finally(() => {
+      autoRenameInFlightRef.current = false;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — only trigger on new messages
+  }, [lastAssistantMessageId]);
 
   // When the statusLine command changes (hot reload), log the next result
   const statusLineCommand = settings?.statusLine?.command;
@@ -310,8 +348,9 @@ function StatusLineInner({
   // flexShrink:0 so a 0→1 row change when the command finishes steals
   // a row from ScrollBox and shifts content. Reserve the row while loading
   // (same trick as PromptInputFooterLeftSide).
-  return <Box paddingX={paddingX} gap={2}>
-      {statusLineText ? <Text dimColor wrap="truncate">
+  return <Box paddingX={paddingX} gap={2}
+>
+      {statusLineText ? <Text wrap="truncate">
           <Ansi>{statusLineText}</Ansi>
         </Text> : isFullscreenEnvEnabled() ? <Text> </Text> : null}
     </Box>;

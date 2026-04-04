@@ -97,11 +97,9 @@ export function calculateOptimalLeftWidth(
 /**
  * Formats the welcome message based on username
  */
-export function formatWelcomeMessage(username: string | null): string {
-  if (!username || username.length > MAX_USERNAME_LENGTH) {
-    return 'Welcome back!'
-  }
-  return `Welcome back ${username}!`
+export function formatWelcomeMessage(_username: string | null): string {
+  // NekoFree: never show username/email
+  return 'Welcome back!'
 }
 
 /**

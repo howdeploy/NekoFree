@@ -79,7 +79,7 @@ function getVersionChangelog(): string {
   )
 }
 
-const defaultFeatures = ['VOICE_MODE']
+const defaultFeatures = ['EXTRACT_MEMORIES', 'VERIFICATION_AGENT']
 const featureSet = new Set(defaultFeatures)
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i]
@@ -111,11 +111,11 @@ const features = [...featureSet]
 
 const outfile = compile
   ? dev
-    ? './dist/cli-dev'
-    : './dist/cli'
+    ? './dist/nekofree-dev'
+    : './dist/nekofree'
   : dev
-    ? './cli-dev'
-    : './cli'
+    ? './nekofree-dev'
+    : './nekofree'
 const buildTime = new Date().toISOString()
 const version = dev ? getDevVersion(pkg.version) : pkg.version
 
@@ -154,7 +154,7 @@ const defines = {
     'This reconstructed source snapshot does not include Anthropic internal issue routing.',
   ),
   'MACRO.VERSION_CHANGELOG': JSON.stringify(
-    dev ? getVersionChangelog() : 'https://github.com/paoloanzn/claude-code',
+    dev ? getVersionChangelog() : 'https://github.com/howdeploy/nekofree',
   ),
 } as const
 

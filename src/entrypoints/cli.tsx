@@ -1,11 +1,89 @@
 import { feature } from 'bun:bundle';
+import { readFileSync as _nfReadSync, writeFileSync as _nfWriteSync, existsSync as _nfExists } from 'node:fs';
+import { join as _nfJoin } from 'node:path';
+import { homedir as _nfHome } from 'node:os';
+
+// ── NekoFree config: load from ~/.nekofree/config.json (must be before any auth/config imports) ───
+// eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
+const _nfDir = _nfJoin(process.env.CLAUDE_CONFIG_DIR || _nfJoin(_nfHome(), '.nekofree'));
+// eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
+const _nfConfigPath = _nfJoin(_nfDir, 'config.json');
+// eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
+const _nfLegacyPath = _nfJoin(process.env.NEKOFREE_CONFIG_DIR || _nfHome(), '.nekofree.json');
+// eslint-disable-next-line custom-rules/no-top-level-side-effects
+const _nfDefaults = {
+  baseUrl: 'https://gateway.nekocode.app/alpha',
+  apiKey: '',
+  model: 'claude-opus-4-6',
+};
+// eslint-disable-next-line custom-rules/no-top-level-side-effects
+let _nfConfig: { baseUrl: string; apiKey: string; model: string } = _nfDefaults;
+// eslint-disable-next-line custom-rules/no-top-level-side-effects
+try {
+  // Ensure ~/.nekofree/ directory exists
+  if (!_nfExists(_nfDir)) {
+    const { mkdirSync: _nfMkdir } = require('node:fs');
+    _nfMkdir(_nfDir, { recursive: true });
+  }
+  // Migrate: if legacy ~/.nekofree.json exists but ~/.nekofree/config.json doesn't, move it
+  if (!_nfExists(_nfConfigPath) && _nfExists(_nfLegacyPath)) {
+    const _nfLegacyData = _nfReadSync(_nfLegacyPath, 'utf-8');
+    _nfWriteSync(_nfConfigPath, _nfLegacyData);
+    const { unlinkSync: _nfUnlink } = require('node:fs');
+    _nfUnlink(_nfLegacyPath);
+  }
+  if (_nfExists(_nfConfigPath)) {
+    _nfConfig = { ..._nfDefaults, ...JSON.parse(_nfReadSync(_nfConfigPath, 'utf-8')) };
+  } else {
+    _nfWriteSync(_nfConfigPath, JSON.stringify({
+      _comment: 'NekoFree config — replace apiKey with your own Anthropic API key, or change baseUrl to use a different provider.',
+      baseUrl: _nfDefaults.baseUrl,
+      apiKey: _nfDefaults.apiKey,
+      model: _nfDefaults.model,
+    }, null, 2) + '\n');
+  }
+  // Ensure default settings.json
+  const _nfSettingsPath = _nfJoin(_nfDir, 'settings.json');
+  if (!_nfExists(_nfSettingsPath)) {
+    _nfWriteSync(_nfSettingsPath, JSON.stringify({
+      permissions: { allow: [], deny: [] },
+    }, null, 2) + '\n');
+  }
+} catch { /* first-run write may fail on read-only FS — fall through to defaults */ }
+
+// eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
+if (!process.env.ANTHROPIC_BASE_URL) {
+  process.env.ANTHROPIC_BASE_URL = _nfConfig.baseUrl;
+}
+// eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
+if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
+  process.env.ANTHROPIC_API_KEY = _nfConfig.apiKey;
+}
+// eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
+if (!process.env.ANTHROPIC_MODEL) {
+  process.env.ANTHROPIC_MODEL = _nfConfig.model;
+}
+
+// ── NekoFree token economy defaults ───────────────────────────────────────────
+// Disable 1M context window — nekofree uses 200k default to save quota
+// eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
+if (!process.env.CLAUDE_CODE_DISABLE_1M_CONTEXT) {
+  process.env.CLAUDE_CODE_DISABLE_1M_CONTEXT = '1';
+}
+// Cap default max output tokens to 16k instead of 64k for Opus.
+// GrowthBook flag tengu_otk_slot_v1 doesn't reach 3P gateways, so we set
+// the cap via env. Requests that genuinely need more get auto-escalated to 64k.
+// eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
+if (!process.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS) {
+  process.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS = '16000';
+}
 
 // Define MACRO global for development (normally injected by bun build --define)
 if (typeof MACRO === 'undefined') {
   (globalThis as any).MACRO = {
-    VERSION: '2.1.87-dev',
+    VERSION: '1.1.0-dev',
     BUILD_TIME: new Date().toISOString(),
-    PACKAGE_URL: 'claude-code-source-snapshot',
+    PACKAGE_URL: 'nekofree',
     FEEDBACK_CHANNEL: 'github',
   };
 }
@@ -47,7 +125,7 @@ async function main(): Promise<void> {
   if (args.length === 1 && (args[0] === '--version' || args[0] === '-v' || args[0] === '-V')) {
     // MACRO.VERSION is inlined at build time
     // biome-ignore lint/suspicious/noConsole:: intentional console output
-    console.log(`${MACRO.VERSION} (Claude Code)`);
+    console.log(`${MACRO.VERSION} (NekoFree)`);
     return;
   }
 
@@ -190,7 +268,7 @@ async function main(): Promise<void> {
   }
 
   // Fast-path for `claude ps|logs|attach|kill` and `--bg`/`--background`.
-  // Session management against the ~/.claude/sessions/ registry. Flag
+  // Session management against the ~/.nekofree/sessions/ registry. Flag
   // literals are inlined so bg.js only loads when actually dispatching.
   if (feature('BG_SESSIONS') && (args[0] === 'ps' || args[0] === 'logs' || args[0] === 'attach' || args[0] === 'kill' || args.includes('--bg') || args.includes('--background'))) {
     profileCheckpoint('cli_bg_path');

@@ -10,7 +10,7 @@ import {
   logEvent,
 } from 'src/services/analytics/index.js'
 import { getModelStrings } from 'src/utils/model/modelStrings.js'
-import { getAPIProvider } from 'src/utils/model/providers.js'
+import { getAPIProvider, isFirstPartyAnthropicBaseUrl } from 'src/utils/model/providers.js'
 import {
   getIsNonInteractiveSession,
   preferThirdPartyAuthentication,
@@ -83,7 +83,7 @@ const DEFAULT_API_KEY_HELPER_TTL = 5 * 60 * 1000
 
 /**
  * CCR and Claude Desktop spawn the CLI with OAuth and should never fall back
- * to the user's ~/.claude/settings.json API-key config (apiKeyHelper,
+ * to the user's ~/.nekofree/settings.json API-key config (apiKeyHelper,
  * env.ANTHROPIC_API_KEY, env.ANTHROPIC_AUTH_TOKEN). Those settings exist for
  * the user's terminal CLI, not managed sessions. Without this guard, a user
  * who runs `claude` in their terminal with an API key sees every CCD session
@@ -99,6 +99,8 @@ function isManagedOAuthContext(): boolean {
 /** Whether we are supporting direct 1P auth. */
 // this code is closely related to getAuthTokenSource
 export function isAnthropicAuthEnabled(): boolean {
+  // NekoFree: OAuth disabled — API-key-only mode.
+  return false
   // --bare: API-key-only, never OAuth.
   if (isBareMode()) return false
 
@@ -106,7 +108,7 @@ export function isAnthropicAuthEnabled(): boolean {
   // local auth-injecting proxy. The launcher sets CLAUDE_CODE_OAUTH_TOKEN as a
   // placeholder iff the local side is a subscriber (so the remote includes the
   // oauth-2025 beta header to match what the proxy will inject). The remote's
-  // ~/.claude settings (apiKeyHelper, settings.env.ANTHROPIC_API_KEY) MUST NOT
+  // ~/.nekofree settings (apiKeyHelper, settings.env.ANTHROPIC_API_KEY) MUST NOT
   // flip this — they'd cause a header mismatch with the proxy and a bogus
   // "invalid x-api-key" from the API. See src/ssh/sshAuthProxy.ts.
   if (process.env.ANTHROPIC_UNIX_SOCKET) {
@@ -296,6 +298,15 @@ export function getAnthropicApiKeyWithSource(
       source: 'none',
     }
   }
+  // Non-first-party gateway (e.g. Nekocode): accept ANTHROPIC_API_KEY directly
+  // without requiring approval in the global config
+  if (apiKeyEnv && !isFirstPartyAnthropicBaseUrl()) {
+    return {
+      key: apiKeyEnv,
+      source: 'ANTHROPIC_API_KEY',
+    }
+  }
+
   // Check for ANTHROPIC_API_KEY before checking the apiKeyHelper or /login-managed key
   if (
     apiKeyEnv &&
@@ -351,7 +362,7 @@ export function getAnthropicApiKeyWithSource(
 /**
  * Get the configured apiKeyHelper from settings.
  * In bare mode, only the --settings flag source is consulted — apiKeyHelper
- * from ~/.claude/settings.json or project settings is ignored.
+ * from ~/.nekofree/settings.json or project settings is ignored.
  */
 export function getConfiguredApiKeyHelper(): string | undefined {
   if (isBareMode()) {
@@ -688,7 +699,7 @@ export function refreshAwsAuth(awsAuthRefresh: string): Promise<boolean> {
               'AWS auth refresh timed out after 3 minutes. Run your auth command manually in a separate terminal.',
             )
           : chalk.red(
-              'Error running awsAuthRefresh (in settings or ~/.claude.json):',
+              'Error running awsAuthRefresh (in settings or ~/.nekofree.json):',
             )
         // biome-ignore lint/suspicious/noConsole:: intentional console output
         console.error(message)
@@ -766,7 +777,7 @@ async function getAwsCredsFromCredentialExport(): Promise<{
       }
     } catch (e) {
       const message = chalk.red(
-        'Error getting AWS credentials from awsCredentialExport (in settings or ~/.claude.json):',
+        'Error getting AWS credentials from awsCredentialExport (in settings or ~/.nekofree.json):',
       )
       if (e instanceof Error) {
         // biome-ignore lint/suspicious/noConsole:: intentional console output
@@ -956,7 +967,7 @@ export function refreshGcpAuth(gcpAuthRefresh: string): Promise<boolean> {
               'GCP auth refresh timed out after 3 minutes. Run your auth command manually in a separate terminal.',
             )
           : chalk.red(
-              'Error running gcpAuthRefresh (in settings or ~/.claude.json):',
+              'Error running gcpAuthRefresh (in settings or ~/.nekofree.json):',
             )
         // biome-ignore lint/suspicious/noConsole:: intentional console output
         console.error(message)
@@ -2017,7 +2028,7 @@ export async function validateForceLoginOrg(): Promise<OrgValidationResult> {
 
   // Always fetch the authoritative org UUID from the profile endpoint.
   // Even keychain-sourced tokens verify server-side: the cached org UUID
-  // in ~/.claude.json is user-writable and cannot be trusted.
+  // in ~/.nekofree.json is user-writable and cannot be trusted.
   const { source } = getAuthTokenSource()
   const isEnvVarToken =
     source === 'CLAUDE_CODE_OAUTH_TOKEN' ||

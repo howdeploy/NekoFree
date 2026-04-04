@@ -1,12 +1,16 @@
-// Past tense verbs for turn completion messages
-// These verbs work naturally with "for [duration]" (e.g., "Worked for 5s")
+// NekoFree: past tense verbs for turn completion messages
+// These work with "for [duration]" (e.g., "Промурчал for 5s")
 export const TURN_COMPLETION_VERBS = [
-  'Baked',
-  'Brewed',
-  'Churned',
-  'Cogitated',
-  'Cooked',
-  'Crunched',
-  'Sautéed',
-  'Worked',
+  'Промурчал',
+  'Поточил когти',
+  'Покусал',
+  'Помяукал',
+  'Покатал клубок',
+  'Поохотился',
+  'Подремал',
+  'Поцарапал',
+  'Пофырчал',
+  'Полапал',
+  'Погонял мышку',
+  'Порешал',
 ]

@@ -92,6 +92,8 @@ export type AppState = DeepImmutable<{
   mainLoopModel: ModelSetting
   mainLoopModelForSession: ModelSetting
   statusLineText: string | undefined
+  // NekoFree: current activity phase for the statusline mascot sprite
+  nekoActivity: 'idle' | 'thinking' | 'tool_running' | 'done'
   expandedView: 'none' | 'tasks' | 'teammates'
   isBriefOnly: boolean
   // Optional - only present when ENABLE_AGENT_SWARMS is true (for dead code elimination)
@@ -473,6 +475,7 @@ export function getDefaultAppState(): AppState {
     mainLoopModel: null, // alias, full name (as with --model or env var), or null (default)
     mainLoopModelForSession: null,
     statusLineText: undefined,
+    nekoActivity: 'idle',
     expandedView: 'none',
     isBriefOnly: false,
     showTeammateMessagePreview: false,

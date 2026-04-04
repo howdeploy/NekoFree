@@ -1688,8 +1688,8 @@ export async function cleanupNpmInstallations(): Promise<{
     }
   }
 
-  // Check for local installation at ~/.claude/local
-  const localInstallDir = join(homedir(), '.claude', 'local')
+  // Check for local installation at ~/.nekofree/local
+  const localInstallDir = join(homedir(), '.nekofree', 'local')
 
   try {
     await rm(localInstallDir, { recursive: true })

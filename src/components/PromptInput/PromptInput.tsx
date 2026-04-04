@@ -117,6 +117,8 @@ import { PromptInputModeIndicator } from './PromptInputModeIndicator.js';
 import { PromptInputQueuedCommands } from './PromptInputQueuedCommands.js';
 import { PromptInputStashNotice } from './PromptInputStashNotice.js';
 import { useMaybeTruncateInput } from './useMaybeTruncateInput.js';
+import { getSessionId } from '../../bootstrap/state.js';
+import { getCurrentSessionTitle } from '../../utils/sessionStorage.js';
 import { usePromptInputPlaceholder } from './usePromptInputPlaceholder.js';
 import { useShowFastIconHint } from './useShowFastIconHint.js';
 import { useSwarmBanner } from './useSwarmBanner.js';
@@ -2265,7 +2267,7 @@ function PromptInput({
             </Box>
           </Box>
           <Text color={swarmBanner.bgColor}>{'─'.repeat(columns)}</Text>
-        </> : <Box flexDirection="row" alignItems="flex-start" justifyContent="flex-start" borderColor={getBorderColor()} borderStyle="round" borderLeft={false} borderRight={false} borderBottom width="100%" borderText={buildBorderText(showFastIcon ?? false, showFastIconHint, fastModeCooldown)}>
+        </> : <Box flexDirection="row" alignItems="flex-start" justifyContent="flex-start" borderColor={getBorderColor()} borderStyle="round" borderLeft={false} borderRight={false} borderBottom width="100%" borderText={buildBorderText(showFastIcon ?? false, showFastIconHint, fastModeCooldown, getCurrentSessionTitle(getSessionId()))}>
           <PromptInputModeIndicator mode={mode} isLoading={isLoading} viewingAgentName={viewingAgentName} viewingAgentColor={viewingAgentColor} />
           <Box flexGrow={1} flexShrink={1} onClick={handleInputClick}>
             {textInputElement}
@@ -2325,11 +2327,13 @@ function getInitialPasteId(messages: Message[]): number {
   }
   return maxId + 1;
 }
-function buildBorderText(showFastIcon: boolean, showFastIconHint: boolean, fastModeCooldown: boolean): BorderTextOptions | undefined {
-  if (!showFastIcon) return undefined;
-  const fastSeg = showFastIconHint ? `${getFastIconString(true, fastModeCooldown)} ${chalk.dim('/fast')}` : getFastIconString(true, fastModeCooldown);
+function buildBorderText(showFastIcon: boolean, showFastIconHint: boolean, fastModeCooldown: boolean, sessionName?: string): BorderTextOptions | undefined {
+  const fastSeg = showFastIcon ? (showFastIconHint ? `${getFastIconString(true, fastModeCooldown)} ${chalk.dim('/fast')}` : getFastIconString(true, fastModeCooldown)) : null;
+  const nameSeg = sessionName ? chalk.rgb(150, 185, 235)(sessionName) : null;
+  if (!fastSeg && !nameSeg) return undefined;
+  const parts = [nameSeg, fastSeg].filter(Boolean).join(' ');
   return {
-    content: ` ${fastSeg} `,
+    content: ` ${parts} `,
     position: 'top',
     align: 'end',
     offset: 0

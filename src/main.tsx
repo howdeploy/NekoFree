@@ -734,7 +734,7 @@ export async function main() {
       }
       // Forward session-resume + model flags to the remote CLI's initial spawn.
       // --continue/-c and --resume <uuid> operate on the REMOTE session history
-      // (which persists under the remote's ~/.claude/projects/<cwd>/).
+      // (which persists under the remote's ~/.nekofree/projects/<cwd>/).
       // --model controls which model the remote uses.
       const extractFlag = (flag: string, opts: {
         hasValue?: boolean;
@@ -965,7 +965,7 @@ async function run(): Promise<CommanderCommand> {
     }
     profileCheckpoint('preAction_after_settings_sync');
   });
-  program.name('claude').description(`Claude Code - starts an interactive session by default, use -p/--print for non-interactive output`).argument('[prompt]', 'Your prompt', String)
+  program.name('nekofree').description(`NekoFree - starts an interactive session by default, use -p/--print for non-interactive output`).argument('[prompt]', 'Your prompt', String)
   // Subcommands inherit helpOption via commander's copyInheritedSettings —
   // setting it once here covers mcp, plugin, auth, and all other subcommands.
   .helpOption('-h, --help', 'Display help for command').option('-d, --debug [filter]', 'Enable debug mode with optional category filtering (e.g., "api,hooks" or "!1p,!file")', (_value: string | true) => {
@@ -1993,10 +1993,8 @@ async function run(): Promise<CommanderCommand> {
     // session ID is finalized by --continue/--resume. materializeSessionFile
     // persists it on the first user message; REPL's useTerminalTitle reads it
     // via getCurrentSessionTitle.
-    const sessionNameArg = options.name?.trim();
-    if (sessionNameArg) {
-      cacheSessionTitle(sessionNameArg);
-    }
+    const sessionNameArg = options.name?.trim() || 'nekofree';
+    cacheSessionTitle(sessionNameArg);
 
     // Ant model aliases (capybara-fast etc.) resolve via the
     // tengu_ant_model_override GrowthBook flag. _CACHED_MAY_BE_STALE reads
@@ -2523,7 +2521,7 @@ async function run(): Promise<CommanderCommand> {
     void logPermissionContextForAnts(null, 'initialization');
     logManagedSettings();
 
-    // Register PID file for concurrent-session detection (~/.claude/sessions/)
+    // Register PID file for concurrent-session detection (~/.nekofree/sessions/)
     // and fire multi-clauding telemetry. Lives here (not init.ts) so only the
     // REPL path registers — not subcommands like `claude doctor`. Chained:
     // count must run after register's write completes or it misses our own file.
@@ -4217,7 +4215,7 @@ async function run(): Promise<CommanderCommand> {
   });
 
   // Plugin uninstall command
-  pluginCmd.command('uninstall <plugin>').alias('remove').alias('rm').description('Uninstall an installed plugin').option('-s, --scope <scope>', 'Uninstall from scope: user, project, or local', 'user').option('--keep-data', "Preserve the plugin's persistent data directory (~/.claude/plugins/data/{id}/)").addOption(coworkOption()).action(async (plugin: string, options: {
+  pluginCmd.command('uninstall <plugin>').alias('remove').alias('rm').description('Uninstall an installed plugin').option('-s, --scope <scope>', 'Uninstall from scope: user, project, or local', 'user').option('--keep-data', "Preserve the plugin's persistent data directory (~/.nekofree/plugins/data/{id}/)").addOption(coworkOption()).action(async (plugin: string, options: {
     scope?: string;
     cowork?: boolean;
     keepData?: boolean;

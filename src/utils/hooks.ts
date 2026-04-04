@@ -4610,8 +4610,18 @@ export async function executeStatusLineCommand(
     statusLine = getSettings_DEPRECATED()?.statusLine
   }
 
+  // NekoFree: default to built-in mascot statusline if no custom one configured
   if (!statusLine || statusLine.type !== 'command') {
-    return undefined
+    const { join, dirname } = await import('node:path')
+    const { existsSync } = await import('node:fs')
+    // Compiled binary: process.execPath is the binary; scripts/ is next to it
+    const projectRoot = dirname(process.execPath)
+    const scriptPath = join(projectRoot, 'scripts', 'nekofree-statusline.js')
+    if (existsSync(scriptPath)) {
+      statusLine = { type: 'command' as const, command: `node ${scriptPath}` }
+    } else {
+      return undefined
+    }
   }
 
   // Use provided signal or create a default one

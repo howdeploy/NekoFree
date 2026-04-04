@@ -206,8 +206,8 @@ export function createBridgeLogger(options: {
 
     // Determine indicator and colors based on state
     const indicator = BRIDGE_READY_INDICATOR
-    const indicatorColor = isIdle ? chalk.green : chalk.cyan
-    const baseColor = isIdle ? chalk.green : chalk.cyan
+    const indicatorColor = isIdle ? chalk.blue : chalk.cyan
+    const baseColor = isIdle ? chalk.blue : chalk.cyan
     const stateText = baseColor(currentStateText)
 
     // Build the suffix with repo and branch
@@ -311,7 +311,7 @@ export function createBridgeLogger(options: {
         write(chalk.dim(`Environment ID: `) + `${environmentId}\n`)
       }
       if (config.sandbox) {
-        write(chalk.dim(`Sandbox: `) + `${chalk.green('Enabled')}\n`)
+        write(chalk.dim(`Sandbox: `) + `${chalk.blue('Enabled')}\n`)
       }
       write('\n')
 
@@ -332,7 +332,7 @@ export function createBridgeLogger(options: {
     logSessionComplete(sessionId: string, durationMs: number): void {
       printLog(
         chalk.dim(`[${timestamp()}]`) +
-          ` Session ${chalk.green('completed')} (${formatDuration(durationMs)}) ${chalk.dim(sessionId)}\n`,
+          ` Session ${chalk.blue('completed')} (${formatDuration(durationMs)}) ${chalk.dim(sessionId)}\n`,
       )
     },
 
@@ -360,7 +360,7 @@ export function createBridgeLogger(options: {
     logReconnected(disconnectedMs: number): void {
       printLog(
         chalk.dim(`[${timestamp()}]`) +
-          ` ${chalk.green('Reconnected')} after ${formatDuration(disconnectedMs)}\n`,
+          ` ${chalk.blue('Reconnected')} after ${formatDuration(disconnectedMs)}\n`,
       )
     },
 

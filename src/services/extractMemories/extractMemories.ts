@@ -1,6 +1,6 @@
 /**
  * Extracts durable memories from the current session transcript
- * and writes them to the auto-memory directory (~/.claude/projects/<path>/memory/).
+ * and writes them to the auto-memory directory (~/.nekofree/projects/<path>/memory/).
  *
  * It runs once at the end of each complete query loop (when the model produces
  * a final response with no tool calls) via handleStopHooks in stopHooks.ts.
@@ -533,7 +533,7 @@ export function initExtractMemories(): void {
       return
     }
 
-    if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_passport_quail', false)) {
+    if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_passport_quail', true)) {
       if (process.env.USER_TYPE === 'ant' && !hasLoggedGateFailure) {
         hasLoggedGateFailure = true
         logEvent('tengu_extract_memories_gate_disabled', {})

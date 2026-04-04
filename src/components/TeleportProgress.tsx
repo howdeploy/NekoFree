@@ -71,7 +71,7 @@ export function TeleportProgress(t0) {
       let color;
       if (isComplete) {
         icon = figures.tick;
-        color = "green";
+        color = "blue";
       } else {
         if (isCurrent) {
           icon = SPINNER_FRAMES[frame];

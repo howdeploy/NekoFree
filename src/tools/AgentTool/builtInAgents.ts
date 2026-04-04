@@ -63,7 +63,7 @@ export function getBuiltInAgents(): AgentDefinition[] {
 
   if (
     feature('VERIFICATION_AGENT') &&
-    getFeatureValue_CACHED_MAY_BE_STALE('tengu_hive_evidence', false)
+    getFeatureValue_CACHED_MAY_BE_STALE('tengu_hive_evidence', true)
   ) {
     agents.push(VERIFICATION_AGENT)
   }

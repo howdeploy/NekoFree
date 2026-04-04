@@ -918,6 +918,42 @@ export function REPL({
   // external loading by setIsExternalLoading.
   const isLoading = isQueryActive || isExternalLoading;
 
+  // NekoFree: map streamMode + isLoading → nekoActivity for the statusline mascot
+  const nekoActivityTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const nekoHasBeenBusyRef = useRef(false);
+  useEffect(() => {
+    if (nekoActivityTimerRef.current !== undefined) {
+      clearTimeout(nekoActivityTimerRef.current);
+      nekoActivityTimerRef.current = undefined;
+    }
+    let activity: 'idle' | 'thinking' | 'tool_running' | 'done';
+    if (!isLoading) {
+      // Only show 'done' if we were busy before (avoid done sprite on initial mount)
+      if (nekoHasBeenBusyRef.current) {
+        activity = 'done';
+        nekoActivityTimerRef.current = setTimeout(() => {
+          nekoActivityTimerRef.current = undefined;
+          setAppState(prev => prev.nekoActivity === 'done' ? { ...prev, nekoActivity: 'idle' } : prev);
+        }, 3000);
+      } else {
+        activity = 'idle';
+      }
+    } else if (streamMode === 'tool-use') {
+      nekoHasBeenBusyRef.current = true;
+      activity = 'tool_running';
+    } else {
+      nekoHasBeenBusyRef.current = true;
+      activity = 'thinking';
+    }
+    setAppState(prev => prev.nekoActivity === activity ? prev : { ...prev, nekoActivity: activity });
+    return () => {
+      if (nekoActivityTimerRef.current !== undefined) {
+        clearTimeout(nekoActivityTimerRef.current);
+        nekoActivityTimerRef.current = undefined;
+      }
+    };
+  }, [isLoading, streamMode, setAppState]);
+
   // Elapsed time is computed by SpinnerWithVerb from these refs on each
   // animation frame, avoiding a useInterval that re-renders the entire REPL.
   const [userInputOnProcessing, setUserInputOnProcessingRaw] = React.useState<string | undefined>(undefined);
@@ -1135,7 +1171,7 @@ export function REPL({
   // session from mid-conversation context.
   const haikuTitleAttemptedRef = useRef((initialMessages?.length ?? 0) > 0);
   const agentTitle = mainThreadAgentDefinition?.agentType;
-  const terminalTitle = sessionTitle ?? agentTitle ?? haikuTitle ?? 'Free Code';
+  const terminalTitle = sessionTitle ?? agentTitle ?? haikuTitle ?? 'NekoFree';
   const isWaitingForApproval = toolUseConfirmQueue.length > 0 || promptQueue.length > 0 || pendingWorkerRequest || pendingSandboxRequest;
   // Local-jsx commands (like /plugin, /config) show user-facing dialogs that
   // wait for input. Require jsx != null — if the flag is stuck true but jsx
@@ -3843,7 +3879,7 @@ export function REPL({
   // empty to non-empty, not on every length change -- otherwise a render loop
   // (concurrent onQuery thrashing, etc.) spams saveGlobalConfig, which hits
   // ELOCKED under concurrent sessions and falls back to unlocked writes.
-  // That write storm is the primary trigger for ~/.claude.json corruption
+  // That write storm is the primary trigger for ~/.nekofree.json corruption
   // (GH #3117).
   const hasCountedQueueUseRef = useRef(false);
   useEffect(() => {

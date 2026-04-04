@@ -87,7 +87,7 @@ const getRemoteHostSessionCount: (hs: string) => Promise<number> =
           'ssh',
           [
             `${homespace}.coder`,
-            'find /root/.claude/projects -name "*.jsonl" 2>/dev/null | wc -l',
+            'find /root/.nekofree/projects -name "*.jsonl" 2>/dev/null | wc -l',
           ],
           { timeout: 30000 },
         )
@@ -111,7 +111,7 @@ const collectFromRemoteHost: (
           // SCP the projects folder
           const scpResult = await execFileNoThrow(
             'scp',
-            ['-rq', `${homespace}.coder:/root/.claude/projects/`, tempDir],
+            ['-rq', `${homespace}.coder:/root/.nekofree/projects/`, tempDir],
             { timeout: 300000 },
           )
           if (scpResult.code !== 0) {
@@ -2298,12 +2298,12 @@ function generateHtmlReport(
     .area-desc { font-size: 14px; color: #475569; line-height: 1.5; }
     .narrative { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
     .narrative p { margin-bottom: 12px; font-size: 14px; color: #475569; line-height: 1.7; }
-    .key-insight { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-top: 12px; font-size: 14px; color: #166534; }
+    .key-insight { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; margin-top: 12px; font-size: 14px; color: #1e3a5f; }
     .section-intro { font-size: 14px; color: #64748b; margin-bottom: 16px; }
     .big-wins { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
-    .big-win { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; }
-    .big-win-title { font-weight: 600; font-size: 15px; color: #166534; margin-bottom: 8px; }
-    .big-win-desc { font-size: 14px; color: #15803d; line-height: 1.5; }
+    .big-win { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; }
+    .big-win-title { font-weight: 600; font-size: 15px; color: #1e3a5f; margin-bottom: 8px; }
+    .big-win-desc { font-size: 14px; color: #1d4ed8; line-height: 1.5; }
     .friction-categories { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
     .friction-category { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 16px; }
     .friction-title { font-weight: 600; font-size: 15px; color: #991b1b; margin-bottom: 6px; }
@@ -2315,21 +2315,21 @@ function generateHtmlReport(
     .claude-md-actions { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #dbeafe; }
     .copy-all-btn { background: #2563eb; color: white; border: none; border-radius: 4px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
     .copy-all-btn:hover { background: #1d4ed8; }
-    .copy-all-btn.copied { background: #16a34a; }
+    .copy-all-btn.copied { background: #2563eb; }
     .claude-md-item { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; padding: 10px 0; border-bottom: 1px solid #dbeafe; }
     .claude-md-item:last-child { border-bottom: none; }
     .cmd-checkbox { margin-top: 2px; }
     .cmd-code { background: white; padding: 8px 12px; border-radius: 4px; font-size: 12px; color: #1e40af; border: 1px solid #bfdbfe; font-family: monospace; display: block; white-space: pre-wrap; word-break: break-word; flex: 1; }
     .cmd-why { font-size: 12px; color: #64748b; width: 100%; padding-left: 24px; margin-top: 4px; }
     .features-section, .patterns-section { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
-    .feature-card { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 16px; }
+    .feature-card { background: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 16px; }
     .pattern-card { background: #f0f9ff; border: 1px solid #7dd3fc; border-radius: 8px; padding: 16px; }
     .feature-title, .pattern-title { font-weight: 600; font-size: 15px; color: #0f172a; margin-bottom: 6px; }
     .feature-oneliner { font-size: 14px; color: #475569; margin-bottom: 8px; }
     .pattern-summary { font-size: 14px; color: #475569; margin-bottom: 8px; }
     .feature-why, .pattern-detail { font-size: 13px; color: #334155; line-height: 1.5; }
     .feature-examples { margin-top: 12px; }
-    .feature-example { padding: 8px 0; border-top: 1px solid #d1fae5; }
+    .feature-example { padding: 8px 0; border-top: 1px solid #dbeafe; }
     .feature-example:first-child { border-top: none; }
     .example-desc { font-size: 13px; color: #334155; margin-bottom: 6px; }
     .example-code-row { display: flex; align-items: flex-start; gap: 8px; }
@@ -2531,7 +2531,7 @@ function generateHtmlReport(
     <div class="charts-row">
       <div class="chart-card">
         <div class="chart-title">Languages</div>
-        ${generateBarChart(data.languages, '#10b981')}
+        ${generateBarChart(data.languages, '#3b82f6')}
       </div>
       <div class="chart-card">
         <div class="chart-title">Session Types</div>

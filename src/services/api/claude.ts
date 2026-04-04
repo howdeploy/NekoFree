@@ -366,6 +366,10 @@ export function getCacheControl({
   ttl?: '1h'
   scope?: CacheScope
 } {
+  // Nekocode gateway: only base ephemeral is supported, no ttl/scope extensions
+  if (!isFirstPartyAnthropicBaseUrl()) {
+    return { type: 'ephemeral' }
+  }
   return {
     type: 'ephemeral',
     ...(should1hCacheTTL(querySource) && { ttl: '1h' }),
