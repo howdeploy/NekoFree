@@ -1,14 +1,12 @@
 import type { Command } from '../../commands.js'
-import { hasAnthropicApiKeyAuth } from '../../utils/auth.js'
-import { isEnvTruthy } from '../../utils/envUtils.js'
 
 export default () =>
   ({
-    type: 'local-jsx',
+    type: 'local',
     name: 'login',
-    description: hasAnthropicApiKeyAuth()
-      ? 'Switch Anthropic accounts'
-      : 'Sign in with your Anthropic account',
-    isEnabled: () => false, // NekoFree: OAuth disabled
-    load: () => import('./login.js'),
+    description: 'Установить API-ключ для gateway.nekocode.app',
+    argumentHint: '<api-key>',
+    supportsNonInteractive: true,
+    isEnabled: () => true,
+    load: () => import('./nekofree-login.js'),
   }) satisfies Command
