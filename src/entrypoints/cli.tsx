@@ -47,6 +47,7 @@ try {
   if (!_nfExists(_nfSettingsPath)) {
     _nfWriteSync(_nfSettingsPath, JSON.stringify({
       permissions: { allow: [], deny: [] },
+      language: 'Russian',
     }, null, 2) + '\n');
   }
 } catch { /* first-run write may fail on read-only FS — fall through to defaults */ }

@@ -23,9 +23,24 @@ let cachedSystemTheme: SystemTheme | undefined
  */
 export function getSystemThemeName(): SystemTheme {
   if (cachedSystemTheme === undefined) {
-    cachedSystemTheme = detectFromColorFgBg() ?? 'dark'
+    cachedSystemTheme =
+      detectFromColorFgBg() ?? detectAppleTerminalDefault() ?? 'dark'
   }
   return cachedSystemTheme
+}
+
+/**
+ * Apple Terminal.app default "Basic" profile has a white background, but
+ * Terminal.app doesn't set $COLORFGBG. The async OSC 11 query will update
+ * the cache later, but the first render uses the synchronous fallback —
+ * defaulting to 'dark' produces white text on a white background.
+ * Use 'light' as the pre-OSC fallback for Terminal.app.
+ */
+function detectAppleTerminalDefault(): SystemTheme | undefined {
+  if (process.env.TERM_PROGRAM === 'Apple_Terminal') {
+    return 'light'
+  }
+  return undefined
 }
 
 /**

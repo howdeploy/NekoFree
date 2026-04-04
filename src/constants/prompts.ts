@@ -142,10 +142,11 @@ function getAntModelOverrideSection(): string | null {
 function getLanguageSection(
   languagePreference: string | undefined,
 ): string | null {
-  if (!languagePreference) return null
+  // NekoFree: default to Russian when no language preference is set
+  const language = languagePreference || 'Russian'
 
   return `# Language
-Always respond in ${languagePreference}. Use ${languagePreference} for all explanations, comments, and communications with the user. Technical terms and code identifiers should remain in their original form.`
+Always respond in ${language}. Use ${language} for all explanations, comments, and communications with the user. Technical terms and code identifiers should remain in their original form.`
 }
 
 function getOutputStyleSection(
