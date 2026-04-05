@@ -1249,6 +1249,17 @@ async function* queryModel(
     ),
   )
 
+  // Place cache_control on the last tool schema so the entire
+  // system prompt + tools block is cached as a single prefix.
+  // Saves ~30-50k input tokens per turn on cache hit (5-min TTL).
+  // Note: enablePromptCaching is declared later, so inline the check here.
+  if (
+    (options.enablePromptCaching ?? getPromptCachingEnabled(options.model)) &&
+    toolSchemas.length > 0
+  ) {
+    toolSchemas[toolSchemas.length - 1]!.cache_control = getCacheControl()
+  }
+
   if (useToolSearch) {
     const includedDeferredTools = count(filteredTools, t =>
       deferredToolNames.has(t.name),

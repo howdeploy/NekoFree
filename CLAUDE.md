@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **ВСЕГДА отвечай пользователю на русском языке.** Все ответы, вопросы, объяснения, подсказки, опросы (AskUserQuestion), сообщения плагинов и любой другой вывод — только на русском. Английский допускается исключительно в коде, именах переменных, CLI-командах и технических терминах без русского аналога.
 
+## Стиль ответов
+
+**Кратко.** Отвечай на вопросы в 2-4 предложения. Никаких таблиц, списков, заголовков и развёрнутых отчётов, если пользователь не попросил явно. Это касается и итоговых вопросов вроде "что ты сделал", "что поменял", "какой результат". Подробности — только по запросу.
+
 ## Project identity
 
 This project is **NekoFree** — a fork of Claude Code with pre-configured API gateway defaults (nekocode.app). Users can override the API key, base URL, and model via `~/.nekofree/config.json` or environment variables.

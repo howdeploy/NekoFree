@@ -503,9 +503,8 @@ ${CYBER_RISK_INSTRUCTION}`,
     systemPromptSection('language', () =>
       getLanguageSection(settings.language),
     ),
-    systemPromptSection('output_style', () =>
-      getOutputStyleSection(outputStyleConfig),
-    ),
+    // output_style moved to static section (before upstream instructions)
+    // so Terse rules take priority over conflicting verbosity defaults
     // When delta enabled, instructions are announced via persisted
     // mcp_instructions_delta attachments (attachments.ts) instead of this
     // per-turn recompute, which busts the prompt cache on late MCP connect.
@@ -526,16 +525,12 @@ ${CYBER_RISK_INSTRUCTION}`,
       () => SUMMARIZE_TOOL_RESULTS_SECTION,
     ),
     // Numeric length anchors — research shows ~1.2% output token reduction vs
-    // qualitative "be concise". Ant-only to measure quality impact first.
-    ...(process.env.USER_TYPE === 'ant'
-      ? [
-          systemPromptSection(
-            'numeric_length_anchors',
-            () =>
-              'Length limits: keep text between tool calls to \u226425 words. Keep final responses to \u2264100 words unless the task requires more detail.',
-          ),
-        ]
-      : []),
+    // qualitative "be concise". Enabled for all users.
+    systemPromptSection(
+      'numeric_length_anchors',
+      () =>
+        'Length limits: keep text between tool calls to \u226425 words. Keep final responses to \u2264100 words unless the task requires more detail.',
+    ),
     ...(feature('TOKEN_BUDGET')
       ? [
           // Cached unconditionally — the "When the user specifies..." phrasing
@@ -561,6 +556,7 @@ ${CYBER_RISK_INSTRUCTION}`,
   return [
     // --- Static content (cacheable) ---
     getSimpleIntroSection(outputStyleConfig),
+    getOutputStyleSection(outputStyleConfig),
     getSimpleSystemSection(),
     outputStyleConfig === null ||
     outputStyleConfig.keepCodingInstructions === true
@@ -569,7 +565,9 @@ ${CYBER_RISK_INSTRUCTION}`,
     getActionsSection(),
     getUsingYourToolsSection(enabledTools),
     getSimpleToneAndStyleSection(),
-    getOutputEfficiencySection(),
+    // Skip output efficiency when Terse is active — Terse already covers
+    // conciseness rules in a more compact form, avoiding ~200 tokens of duplication.
+    outputStyleConfig?.name === 'Terse' ? null : getOutputEfficiencySection(),
     // === BOUNDARY MARKER - DO NOT MOVE OR REMOVE ===
     ...(shouldUseGlobalCacheScope() ? [SYSTEM_PROMPT_DYNAMIC_BOUNDARY] : []),
     // --- Dynamic content (registry-managed) ---
