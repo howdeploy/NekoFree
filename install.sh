@@ -126,6 +126,60 @@ build_binary() {
   ok "Binary built: $INSTALL_DIR/nekofree-dev"
 }
 
+setup_codex_config() {
+  local codex_dir="$HOME/.codex"
+  mkdir -p "$codex_dir"
+
+  local config_file="$codex_dir/config.toml"
+  local auth_file="$codex_dir/auth.json"
+
+  # Patch or create config.toml with nekocode provider
+  if [ -f "$config_file" ]; then
+    # Inject model_provider if missing
+    if ! grep -q 'model_provider' "$config_file"; then
+      sed -i 's/^model = /model_provider = "nekocode"\nmodel = /' "$config_file"
+      info "Patched existing $config_file (added model_provider)"
+    fi
+    # Inject [model_providers.nekocode] block if missing
+    if ! grep -q '\[model_providers.nekocode\]' "$config_file"; then
+      cat >> "$config_file" << 'TOML'
+
+[model_providers.nekocode]
+name = "nekocode"
+base_url = "https://gateway.nekocode.app/andromeda/v1"
+wire_api = "responses"
+requires_openai_auth = true
+TOML
+      info "Added [model_providers.nekocode] to $config_file"
+    fi
+  else
+    cat > "$config_file" << 'TOML'
+model_provider = "nekocode"
+model = "gpt-5.4"
+
+[model_providers.nekocode]
+name = "nekocode"
+base_url = "https://gateway.nekocode.app/andromeda/v1"
+wire_api = "responses"
+requires_openai_auth = true
+TOML
+    ok "Created $config_file"
+  fi
+
+  # Create auth.json if missing or OPENAI_API_KEY is not set
+  if [ ! -f "$auth_file" ] || ! grep -q '"OPENAI_API_KEY"' "$auth_file"; then
+    cat > "$auth_file" << 'JSON'
+{
+  "OPENAI_API_KEY": "sk_neko_your_api_key"
+}
+JSON
+    ok "Created $auth_file"
+    warn "Replace sk_neko_your_api_key in $auth_file with your real nekocode key"
+  else
+    info "Skipped $auth_file (already has OPENAI_API_KEY)"
+  fi
+}
+
 link_binary() {
   local link_dir="$HOME/.local/bin"
   mkdir -p "$link_dir"
@@ -159,6 +213,7 @@ clone_repo
 install_deps
 build_binary
 link_binary
+setup_codex_config
 
 echo ""
 printf "${GREEN}${BOLD}  Installation complete!${RESET}\n"
@@ -170,6 +225,9 @@ echo ""
 printf "  ${BOLD}Set your API key (edit config or env):${RESET}\n"
 printf "    ${CYAN}export ANTHROPIC_API_KEY=\"your-key\"${RESET}\n"
 printf "    ${DIM}or edit ~/.nekofree/config.json → apiKey${RESET}\n"
+echo ""
+printf "  ${BOLD}Codex routed via nekocode gateway:${RESET}\n"
+printf "    ${DIM}Edit ~/.codex/auth.json → replace sk_neko_your_api_key${RESET}\n"
 echo ""
 printf "  ${DIM}Source: $INSTALL_DIR${RESET}\n"
 printf "  ${DIM}Binary: $INSTALL_DIR/nekofree-dev${RESET}\n"
