@@ -5,6 +5,7 @@ import { homedir } from 'node:os'
 import { Box, Text } from '../../ink.js'
 import { Dialog } from '../../components/design-system/Dialog.js'
 import TextInput from '../../components/TextInput.js'
+import { useTerminalSize } from '../../hooks/useTerminalSize.js'
 import type { LocalJSXCommandOnDone } from '../../types/command.js'
 import type { LocalJSXCommandContext } from '../../commands.js'
 
@@ -39,6 +40,8 @@ function saveKey(apiKey: string): string {
 
 function LoginPrompt({ onDone }: { onDone: LocalJSXCommandOnDone }) {
   const [value, setValue] = React.useState('')
+  const [cursorOffset, setCursorOffset] = React.useState(0)
+  const columns = Math.max(20, useTerminalSize().columns - 4)
 
   const handleSubmit = React.useCallback(
     (input: string) => {
@@ -57,7 +60,11 @@ function LoginPrompt({ onDone }: { onDone: LocalJSXCommandOnDone }) {
   }, [onDone])
 
   return (
-    <Dialog title="NekoFree — API ключ" onCancel={handleCancel}>
+    <Dialog
+      title="NekoFree — API ключ"
+      onCancel={handleCancel}
+      isCancelActive={false}
+    >
       <Box flexDirection="column">
         <Box marginBottom={1}>
           <Text>Введите API-ключ для gateway.nekocode.app:</Text>
@@ -69,6 +76,10 @@ function LoginPrompt({ onDone }: { onDone: LocalJSXCommandOnDone }) {
           placeholder="sk-ant-… или gateway-ключ"
           mask="*"
           focus={true}
+          columns={columns}
+          cursorOffset={cursorOffset}
+          onChangeCursorOffset={setCursorOffset}
+          showCursor={true}
         />
       </Box>
     </Dialog>
