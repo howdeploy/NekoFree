@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint (changed files only)
+        if: github.event_name == 'pull_request'
+        run: bunx biome check --changed --since=${{ github.base_ref }} --max-diagnostics=50
+
+      - name: Lint (all, info only)
+        if: github.event_name == 'push'
+        run: bun run lint --max-diagnostics=20 || true
+
+      - name: Build
+        run: bun run build
+
+      - name: Smoke test
+        run: |
+          ./nekofree --version
+          ./nekofree --help
