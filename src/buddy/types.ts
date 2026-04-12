@@ -131,14 +131,6 @@ export const RARITY_WEIGHTS = {
   legendary: 1,
 } as const satisfies Record<Rarity, number>
 
-export const RARITY_STARS = {
-  common: '★',
-  uncommon: '★★',
-  rare: '★★★',
-  epic: '★★★★',
-  legendary: '★★★★★',
-} as const satisfies Record<Rarity, string>
-
 export const RARITY_COLORS = {
   common: 'inactive',
   uncommon: 'success',

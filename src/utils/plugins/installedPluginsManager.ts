@@ -45,7 +45,7 @@ import { getCwd } from '../cwd.js'
 import { getHeadForDir } from '../git/gitFilesystem.js'
 import type { EditableSettingSource } from '../settings/constants.js'
 import {
-  getSettings_DEPRECATED,
+  getInitialSettings,
   getSettingsForSource,
 } from '../settings/settings.js'
 import { getPluginById } from './marketplaceManager.js'
@@ -827,7 +827,7 @@ export function isPluginInstalled(pluginId: string): boolean {
   // Plugins are loaded from settings.enabledPlugins
   // If settings.enabledPlugins and installed_plugins.json diverge
   // (via settings.json clobber), return false
-  return getSettings_DEPRECATED().enabledPlugins?.[pluginId] !== undefined
+  return getInitialSettings().enabledPlugins?.[pluginId] !== undefined
 }
 
 /**
@@ -858,7 +858,7 @@ export function isPluginGloballyInstalled(pluginId: string): boolean {
   if (!hasGlobalEntry) return false
   // Same settings divergence guard as isPluginInstalled — if enabledPlugins
   // was clobbered, treat as not-installed so the user can re-enable.
-  return getSettings_DEPRECATED().enabledPlugins?.[pluginId] !== undefined
+  return getInitialSettings().enabledPlugins?.[pluginId] !== undefined
 }
 
 /**
@@ -1047,7 +1047,7 @@ function getPluginVersionFromManifest(
  */
 export async function migrateFromEnabledPlugins(): Promise<void> {
   // Use merged settings for shouldSkipSync check
-  const settings = getSettings_DEPRECATED()
+  const settings = getInitialSettings()
   const enabledPlugins = settings.enabledPlugins || {}
 
   // No plugins in settings = nothing to sync

@@ -73,7 +73,7 @@ import { getFsImplementation } from '../fsOperations.js'
 import { gitExe } from '../git.js'
 import { lazySchema } from '../lazySchema.js'
 import { logError } from '../log.js'
-import { getSettings_DEPRECATED } from '../settings/settings.js'
+import { getInitialSettings } from '../settings/settings.js'
 import {
   clearPluginSettingsBase,
   getPluginSettingsBase,
@@ -1893,7 +1893,7 @@ async function loadPluginsFromMarketplaces({
   plugins: LoadedPlugin[]
   errors: PluginError[]
 }> {
-  const settings = getSettings_DEPRECATED()
+  const settings = getInitialSettings()
   // Merge --add-dir plugins at lowest priority; standard settings win on conflict
   const enabledPlugins = {
     ...getAddDirEnabledPlugins(),

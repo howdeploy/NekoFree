@@ -112,10 +112,6 @@ export function roll(userId: string): Roll {
   return value
 }
 
-export function rollWithSeed(seed: string): Roll {
-  return rollFrom(mulberry32(hashString(seed)))
-}
-
 export function companionUserId(): string {
   const config = getGlobalConfig()
   return config.oauthAccount?.accountUuid ?? config.userID ?? 'anon'

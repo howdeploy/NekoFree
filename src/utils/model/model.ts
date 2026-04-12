@@ -24,7 +24,7 @@ import {
 import { isEnvTruthy } from '../envUtils.js'
 import { getModelStrings, resolveOverriddenModel } from './modelStrings.js'
 import { formatModelPricing, getOpus46CostTier } from '../modelCost.js'
-import { getSettings_DEPRECATED } from '../settings/settings.js'
+import { getInitialSettings } from '../settings/settings.js'
 import type { PermissionMode } from '../permissions/PermissionMode.js'
 import { getAPIProvider } from './providers.js'
 import { LIGHTNING_BOLT } from '../../constants/figures.js'
@@ -68,7 +68,7 @@ export function getUserSpecifiedModelSetting(): ModelSetting | undefined {
   if (modelOverride !== undefined) {
     specifiedModel = modelOverride
   } else {
-    const settings = getSettings_DEPRECATED() || {}
+    const settings = getInitialSettings() || {}
     specifiedModel = process.env.ANTHROPIC_MODEL || settings.model || undefined
   }
 

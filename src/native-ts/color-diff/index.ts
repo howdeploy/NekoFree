@@ -18,26 +18,19 @@
  */
 
 import { diffArrays } from 'diff'
-import type * as hljsNamespace from 'highlight.js'
+import type { HLJSApi } from 'highlight.js'
 import { basename, extname } from 'path'
 
-// Lazy: defers loading highlight.js until first render. The full bundle
-// registers 190+ language grammars at require time (~50MB, 100-200ms on
-// macOS, several× that on Windows). With a top-level import, any caller
-// chunk that reaches this module — including test/preload.ts via
-// StructuredDiff.tsx → colorDiff.ts — pays that cost at module-eval time
-// and carries the heap for the rest of the process. On Windows CI this
-// pushed later tests in the same shard into GC-pause territory and a
-// beforeEach/afterEach hook timeout (officialRegistry.test.ts, PR #24150).
+// Lazy: defers loading highlight.js until first render. Uses selective
+// imports (highlight.js/lib/core + 35 languages) instead of the full bundle
+// (190+ languages, ~50MB, 100-200ms). The core module + registered languages
+// loads in <10ms and uses ~3MB heap — a ~15× improvement over the full bundle.
 // Same lazy pattern the NAPI wrapper used for dlopen.
-type HLJSApi = typeof hljsNamespace
 let cachedHljs: HLJSApi | null = null
 function hljs(): HLJSApi {
   if (cachedHljs) return cachedHljs
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const mod = require('highlight.js')
-  // highlight.js uses `export =` (CJS). Under bun/ESM the interop wraps it
-  // in .default; under node CJS the module IS the API. Check at runtime.
+  const mod = require('../../utils/hljsCore.js')
   cachedHljs = 'default' in mod && mod.default ? mod.default : mod
   return cachedHljs!
 }

@@ -433,12 +433,6 @@ export function addToHistory(command: HistoryEntry | string): void {
   void addToPromptHistory(command)
 }
 
-export function clearPendingHistoryEntries(): void {
-  pendingEntries = []
-  lastAddedEntry = null
-  skippedTimestamps.clear()
-}
-
 /**
  * Undo the most recent addToHistory call. Used by auto-restore-on-interrupt:
  * when Esc rewinds the conversation before any response arrives, the submit is

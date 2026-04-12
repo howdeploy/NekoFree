@@ -14,7 +14,7 @@ import {
 import { getAnthropicApiKeyWithSource } from '../auth.js'
 import { getCwd } from '../cwd.js'
 import { getFastModeState } from '../fastMode.js'
-import { getSettings_DEPRECATED } from '../settings/settings.js'
+import { getInitialSettings } from '../settings/settings.js'
 
 // TODO(next-minor): remove this translation once SDK consumers have migrated
 // to the 'Agent' tool name. The wire name was renamed Task → Agent in #19647,
@@ -51,7 +51,7 @@ export type SystemInitInputs = {
  *     QueryEngine SDKMessage layer
  */
 export function buildSystemInitMessage(inputs: SystemInitInputs): SDKMessage {
-  const settings = getSettings_DEPRECATED()
+  const settings = getInitialSettings()
   const outputStyle = settings?.outputStyle ?? DEFAULT_OUTPUT_STYLE_NAME
 
   const initMessage: SDKMessage = {

@@ -19,6 +19,7 @@
  */
 import { statSync, readFileSync } from 'node:fs'
 import { basename } from 'node:path'
+import { LRUCache } from 'lru-cache'
 import { registerHookCallbacks } from '../bootstrap/state.js'
 import type { HookInput, HookJSONOutput } from '../entrypoints/agentSdkTypes.js'
 import type { HookCallback } from '../types/hooks.js'
@@ -30,8 +31,8 @@ interface CacheEntry {
   ts: number
 }
 
-const cache = new Map<string, CacheEntry>()
-const snapshots = new Map<string, string>()
+const cache = new LRUCache<string, CacheEntry>({ max: 200 })
+const snapshots = new LRUCache<string, string>({ max: 200 })
 let totalTokensSaved = 0
 
 // --- Config ---

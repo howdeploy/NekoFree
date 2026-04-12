@@ -63,7 +63,7 @@ import {
   isValidImagePaste,
 } from 'src/types/textInputTypes.js'
 import { randomUUID, type UUID } from 'crypto'
-import { getSettings_DEPRECATED } from './settings/settings.js'
+import { getInitialSettings } from './settings/settings.js'
 import { getSnippetForTwoFileDiff } from 'src/tools/FileEditTool/utils.js'
 import type {
   ContentBlockParam,
@@ -1595,7 +1595,7 @@ function getCriticalSystemReminderAttachment(
 }
 
 function getOutputStyleAttachment(): Attachment[] {
-  const settings = getSettings_DEPRECATED()
+  const settings = getInitialSettings()
   const outputStyle = settings?.outputStyle || 'default'
 
   // Only show for non-default styles

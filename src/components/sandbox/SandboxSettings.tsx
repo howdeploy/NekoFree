@@ -5,7 +5,7 @@ import { useKeybindings } from '../../keybindings/useKeybinding.js';
 import type { CommandResultDisplay } from '../../types/command.js';
 import type { SandboxDependencyCheck } from '../../utils/sandbox/sandbox-adapter.js';
 import { SandboxManager } from '../../utils/sandbox/sandbox-adapter.js';
-import { getSettings_DEPRECATED } from '../../utils/settings/settings.js';
+import { getInitialSettings } from '../../utils/settings/settings.js';
 import { Select } from '../CustomSelect/select.js';
 import { Pane } from '../design-system/Pane.js';
 import { Tab, Tabs, useTabHeaderFocus } from '../design-system/Tabs.js';
@@ -31,7 +31,7 @@ export function SandboxSettings(t0) {
   const hasWarnings = depCheck.warnings.length > 0;
   let t1;
   if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
-    t1 = getSettings_DEPRECATED();
+    t1 = getInitialSettings();
     $[0] = t1;
   } else {
     t1 = $[0];

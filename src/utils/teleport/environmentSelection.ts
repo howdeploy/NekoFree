@@ -1,6 +1,6 @@
 import { SETTING_SOURCES, type SettingSource } from '../settings/constants.js'
 import {
-  getSettings_DEPRECATED,
+  getInitialSettings,
   getSettingsForSource,
 } from '../settings/settings.js'
 import { type EnvironmentResource, fetchEnvironments } from './environments.js'
@@ -34,7 +34,7 @@ export async function getEnvironmentSelectionInfo(): Promise<EnvironmentSelectio
   }
 
   // Get the merged settings to see what would actually be used
-  const mergedSettings = getSettings_DEPRECATED()
+  const mergedSettings = getInitialSettings()
   const defaultEnvironmentId = mergedSettings?.remote?.defaultEnvironmentId
 
   // Find which environment would be selected

@@ -1,4 +1,5 @@
 import type { BetaTool } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
+import { LRUCache } from 'lru-cache'
 
 // Session-scoped cache of rendered tool schemas. Tool schemas render at server
 // position 2 (before system prompt), so any byte-level change busts the entire
@@ -15,9 +16,9 @@ type CachedSchema = BetaTool & {
   eager_input_streaming?: boolean
 }
 
-const TOOL_SCHEMA_CACHE = new Map<string, CachedSchema>()
+const TOOL_SCHEMA_CACHE = new LRUCache<string, CachedSchema>({ max: 100 })
 
-export function getToolSchemaCache(): Map<string, CachedSchema> {
+export function getToolSchemaCache(): LRUCache<string, CachedSchema> {
   return TOOL_SCHEMA_CACHE
 }
 

@@ -32,7 +32,7 @@ import { getPewterLedgerVariant, isPlanModeInterviewPhaseEnabled } from '../../.
 import { getPlan, getPlanFilePath } from '../../../utils/plans.js';
 import { editFileInEditor, editPromptInEditor } from '../../../utils/promptEditor.js';
 import { getCurrentSessionTitle, getTranscriptPath, saveAgentName, saveCustomTitle } from '../../../utils/sessionStorage.js';
-import { getSettings_DEPRECATED } from '../../../utils/settings/settings.js';
+import { getInitialSettings } from '../../../utils/settings/settings.js';
 import { type OptionWithDescription, Select } from '../../CustomSelect/index.js';
 import { Markdown } from '../../Markdown.js';
 import { PermissionDialog } from '../PermissionDialog.js';
@@ -81,7 +81,7 @@ export function buildPermissionUpdates(mode: PermissionMode, allowedPrompts?: Al
  * Mirrors /rename: kebab-case name, updates the prompt-border badge.
  */
 export function autoNameSessionFromPlan(plan: string, setAppState: (updater: (prev: AppState) => AppState) => void, isClearContext: boolean): void {
-  if (isSessionPersistenceDisabled() || getSettings_DEPRECATED()?.cleanupPeriodDays === 0) {
+  if (isSessionPersistenceDisabled() || getInitialSettings()?.cleanupPeriodDays === 0) {
     return;
   }
   // On clear-context, the current session is about to be abandoned — its

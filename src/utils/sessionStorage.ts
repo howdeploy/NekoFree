@@ -89,7 +89,7 @@ import {
   readTranscriptForLoad,
   SKIP_PRECOMPACT_THRESHOLD,
 } from './sessionStoragePortable.js'
-import { getSettings_DEPRECATED } from './settings/settings.js'
+import { getInitialSettings } from './settings/settings.js'
 import { jsonParse, jsonStringify } from './slowOperations.js'
 import type { ContentReplacementRecord } from './toolResultStorage.js'
 import { validateUuid } from './uuid.js'
@@ -963,7 +963,7 @@ class Project {
     )
     return (
       (getNodeEnv() === 'test' && !allowTestPersistence) ||
-      getSettings_DEPRECATED()?.cleanupPeriodDays === 0 ||
+      getInitialSettings()?.cleanupPeriodDays === 0 ||
       isSessionPersistenceDisabled() ||
       isEnvTruthy(process.env.CLAUDE_CODE_SKIP_PROMPT_HISTORY)
     )

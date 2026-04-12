@@ -1,6 +1,7 @@
 import type { SettingSource } from './constants.js'
 import type { SettingsJson } from './types.js'
 import type { SettingsWithErrors, ValidationError } from './validation.js'
+import { LRUCache } from 'lru-cache'
 
 let sessionSettingsCache: SettingsWithErrors | null = null
 
@@ -17,7 +18,7 @@ export function setSessionSettingsCache(value: SettingsWithErrors): void {
  * merged sessionSettingsCache — same resetSettingsCache() triggers
  * (settings write, --add-dir, plugin init, hooks refresh).
  */
-const perSourceCache = new Map<SettingSource, SettingsJson | null>()
+const perSourceCache = new LRUCache<SettingSource, SettingsJson | null>({ max: 50 })
 
 export function getCachedSettingsForSource(
   source: SettingSource,
@@ -42,7 +43,7 @@ type ParsedSettings = {
   settings: SettingsJson | null
   errors: ValidationError[]
 }
-const parseFileCache = new Map<string, ParsedSettings>()
+const parseFileCache = new LRUCache<string, ParsedSettings>({ max: 50 })
 
 export function getCachedParsedFile(path: string): ParsedSettings | undefined {
   return parseFileCache.get(path)

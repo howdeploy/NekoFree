@@ -12,10 +12,6 @@ export type CliHighlight = {
   supportsLanguage: typeof import('cli-highlight').supportsLanguage
 }
 
-// One promise shared by Fallback.tsx, markdown.ts, events.ts, getLanguageName.
-// The highlight.js import piggybacks: cli-highlight has already pulled it into
-// the module cache, so the second import() is a cache hit — no extra bytes
-// faulted in.
 let cliHighlightPromise: Promise<CliHighlight | null> | undefined
 
 let loadedGetLanguage: typeof import('highlight.js').getLanguage | undefined
@@ -23,9 +19,8 @@ let loadedGetLanguage: typeof import('highlight.js').getLanguage | undefined
 async function loadCliHighlight(): Promise<CliHighlight | null> {
   try {
     const cliHighlight = await import('cli-highlight')
-    // cache hit — cli-highlight already loaded highlight.js
-    const highlightJs = await import('highlight.js')
-    loadedGetLanguage = highlightJs.getLanguage
+    const highlightJs = await import('../utils/hljsCore.js')
+    loadedGetLanguage = highlightJs.default.getLanguage
     return {
       highlight: cliHighlight.highlight,
       supportsLanguage: cliHighlight.supportsLanguage,

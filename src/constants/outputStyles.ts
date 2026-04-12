@@ -6,7 +6,7 @@ import { getCwd } from '../utils/cwd.js'
 import { logForDebugging } from '../utils/debug.js'
 import { loadPluginOutputStyles } from '../utils/plugins/loadPluginOutputStyles.js'
 import type { SettingSource } from '../utils/settings/constants.js'
-import { getSettings_DEPRECATED } from '../utils/settings/settings.js'
+import { getInitialSettings } from '../utils/settings/settings.js'
 
 export type OutputStyleConfig = {
   name: string
@@ -252,14 +252,11 @@ export async function getOutputStyleConfig(): Promise<OutputStyleConfig | null> 
     return firstForcedStyle
   }
 
-  const settings = getSettings_DEPRECATED()
+  const settings = getInitialSettings()
   const outputStyle = (settings?.outputStyle ||
     DEFAULT_OUTPUT_STYLE_NAME) as string
 
   return allStyles[outputStyle] ?? null
 }
 
-export function hasCustomOutputStyle(): boolean {
-  const style = getSettings_DEPRECATED()?.outputStyle
-  return style !== undefined && style !== DEFAULT_OUTPUT_STYLE_NAME
-}
+

@@ -41,7 +41,7 @@ import { loadAllPlugins } from '../../utils/plugins/pluginLoader.js';
 import { loadPluginOptions, type PluginOptionSchema, savePluginOptions } from '../../utils/plugins/pluginOptionsStorage.js';
 import { isPluginBlockedByPolicy } from '../../utils/plugins/pluginPolicy.js';
 import { getPluginEditableScopes } from '../../utils/plugins/pluginStartupCheck.js';
-import { getSettings_DEPRECATED, getSettingsForSource, updateSettingsForSource } from '../../utils/settings/settings.js';
+import { getInitialSettings, getSettingsForSource, updateSettingsForSource } from '../../utils/settings/settings.js';
 import { jsonParse } from '../../utils/slowOperations.js';
 import { plural } from '../../utils/stringUtils.js';
 import { formatErrorMessage, getErrorGuidance } from './PluginErrors.js';
@@ -520,7 +520,7 @@ export function ManagePlugins({
 
   // Derive unified items from plugins and MCP servers
   const unifiedItems = useMemo(() => {
-    const mergedSettings = getSettings_DEPRECATED();
+    const mergedSettings = getInitialSettings();
 
     // Build map of plugin name -> child MCPs
     // Plugin MCPs have names like "plugin:pluginName:serverName"
@@ -865,7 +865,7 @@ export function ManagePlugins({
           enabled,
           disabled
         } = await loadAllPlugins();
-        const mergedSettings = getSettings_DEPRECATED(); // Use merged settings to respect all layers
+        const mergedSettings = getInitialSettings(); // Use merged settings to respect all layers
 
         const allPlugins = filterManagedDisabledPlugins([...enabled, ...disabled]);
 
@@ -1110,7 +1110,7 @@ export function ManagePlugins({
       // first. PluginOptionsFlow itself checks getUnconfiguredOptions — if
       // nothing needs filling, it calls onDone('skipped') immediately.
       const pluginIdNow = `${selectedPlugin.plugin.name}@${selectedPlugin.marketplace}`;
-      const settingsAfter = getSettings_DEPRECATED();
+      const settingsAfter = getInitialSettings();
       const enabledAfter = settingsAfter?.enabledPlugins?.[pluginIdNow] !== false;
       if (enabledAfter) {
         setIsProcessing(false);
@@ -1162,7 +1162,7 @@ export function ManagePlugins({
     if (item_7?.type === 'flagged-plugin') return;
     if (item_7?.type === 'plugin') {
       const pluginId_4 = `${item_7.plugin.name}@${item_7.marketplace}`;
-      const mergedSettings_0 = getSettings_DEPRECATED();
+      const mergedSettings_0 = getInitialSettings();
       const currentPending = pendingToggles.get(pluginId_4);
       const isEnabled_0 = mergedSettings_0?.enabledPlugins?.[pluginId_4] !== false;
       const pluginScope_0 = item_7.scope;
@@ -1296,7 +1296,7 @@ export function ManagePlugins({
   // Build details menu items (needed for navigation)
   const detailsMenuItems = React.useMemo(() => {
     if (viewState !== 'plugin-details' || !selectedPlugin) return [];
-    const mergedSettings_1 = getSettings_DEPRECATED();
+    const mergedSettings_1 = getInitialSettings();
     const pluginId_5 = `${selectedPlugin.plugin.name}@${selectedPlugin.marketplace}`;
     const isEnabled_1 = mergedSettings_1?.enabledPlugins?.[pluginId_5] !== false;
     const isBuiltin_1 = selectedPlugin.marketplace === 'builtin';
@@ -1811,7 +1811,7 @@ export function ManagePlugins({
 
   // Plugin details view
   if (viewState === 'plugin-details' && selectedPlugin) {
-    const mergedSettings_2 = getSettings_DEPRECATED(); // Use merged settings to respect all layers
+    const mergedSettings_2 = getInitialSettings(); // Use merged settings to respect all layers
     const pluginId_13 = `${selectedPlugin.plugin.name}@${selectedPlugin.marketplace}`;
     const isEnabled_2 = mergedSettings_2?.enabledPlugins?.[pluginId_13] !== false;
 

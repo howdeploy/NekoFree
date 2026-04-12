@@ -1,9 +1,5 @@
 import type { BetaMessageStreamParams } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
-import type { Attributes, Meter, MetricOptions } from '@opentelemetry/api'
-import type { logs } from '@opentelemetry/api-logs'
-import type { LoggerProvider } from '@opentelemetry/sdk-logs'
-import type { MeterProvider } from '@opentelemetry/sdk-metrics'
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base'
+import type { Attributes, BasicTracerProvider, Logger, LoggerProvider, Meter, MeterProvider, MetricOptions } from '../types/otel-stubs.js'
 import { realpathSync } from 'fs'
 import sumBy from 'lodash-es/sumBy.js'
 import { cwd } from 'process'
@@ -102,7 +98,7 @@ type State = {
   parentSessionId: SessionId | undefined
   // Logger state
   loggerProvider: LoggerProvider | null
-  eventLogger: ReturnType<typeof logs.getLogger> | null
+  eventLogger: Logger | null
   // Meter provider state
   meterProvider: MeterProvider | null
   // Tracer provider state
@@ -1030,12 +1026,12 @@ export function setLoggerProvider(provider: LoggerProvider | null): void {
   STATE.loggerProvider = provider
 }
 
-export function getEventLogger(): ReturnType<typeof logs.getLogger> | null {
+export function getEventLogger(): Logger | null {
   return STATE.eventLogger
 }
 
 export function setEventLogger(
-  logger: ReturnType<typeof logs.getLogger> | null,
+  logger: Logger | null,
 ): void {
   STATE.eventLogger = logger
 }
