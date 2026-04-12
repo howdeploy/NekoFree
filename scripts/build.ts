@@ -1,5 +1,5 @@
-import { chmodSync, existsSync, mkdirSync } from 'fs'
-import { dirname } from 'path'
+import { chmodSync, existsSync, mkdirSync, cpSync } from 'fs'
+import { dirname, join } from 'path'
 
 const pkg = await Bun.file(new URL('../package.json', import.meta.url)).json() as {
   name: string
@@ -202,6 +202,14 @@ if (proc.exitCode !== 0) {
 
 if (existsSync(outfile)) {
   chmodSync(outfile, 0o755)
+}
+
+// Copy bundled skills next to binary
+const skillsSrc = join(import.meta.dir, '..', 'skills')
+const skillsDst = join(dirname(outfile), 'skills')
+if (existsSync(skillsSrc)) {
+  cpSync(skillsSrc, skillsDst, { recursive: true })
+  console.log(`Copied skills/ to ${skillsDst}`)
 }
 
 console.log(`Built ${outfile}`)

@@ -1,0 +1,140 @@
+import { readdirSync, readFileSync, statSync, existsSync } from 'fs'
+import { join, basename } from 'path'
+
+const SKILLS_DIR = join(import.meta.dir, '..', 'skills')
+const OUT_FILE = join(import.meta.dir, '..', 'src', 'skills', 'bundled', 'gstackSkills.ts')
+
+function parseFrontmatter(content: string): { frontmatter: Record<string, any>; body: string } {
+  if (!content.startsWith('---')) return { frontmatter: {}, body: content }
+  const end = content.indexOf('---', 3)
+  if (end === -1) return { frontmatter: {}, body: content }
+  const fmText = content.slice(3, end).trim()
+  const body = content.slice(end + 3).trimStart()
+  const fm: Record<string, any> = {}
+  let currentKey = ''
+  let currentValue = ''
+  let inMultiline = false
+  for (const line of fmText.split('\n')) {
+    const multilineMatch = line.match(/^(\S+):\s*\|/)
+    if (multilineMatch) {
+      if (currentKey && currentValue) fm[currentKey] = currentValue.trim()
+      currentKey = multilineMatch[1]!
+      currentValue = ''
+      inMultiline = true
+      continue
+    }
+    if (inMultiline && !line.match(/^\S+:/)) {
+      currentValue += (currentValue ? '\n' : '') + line
+      continue
+    }
+    if (inMultiline) {
+      fm[currentKey] = currentValue.trim()
+      inMultiline = false
+    }
+    const kvMatch = line.match(/^(\S+):\s*(.*)/)
+    if (kvMatch) {
+      if (currentKey && currentValue) fm[currentKey] = currentValue.trim()
+      currentKey = kvMatch[1]!
+      currentValue = kvMatch[2]!.trim()
+    }
+  }
+  if (currentKey && currentValue) fm[currentKey] = currentValue.trim()
+  return { frontmatter: fm, body }
+}
+
+function escapeForTemplateLiteral(str: string): string {
+  return str.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$')
+}
+
+function collectFiles(dir: string, base: string): Record<string, string> {
+  const files: Record<string, string> = {}
+  if (!existsSync(dir)) return files
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = join(dir, entry.name)
+    const relPath = join(base, entry.name)
+    if (entry.isDirectory()) {
+      Object.assign(files, collectFiles(fullPath, relPath))
+    } else if (entry.isFile()) {
+      files[relPath] = readFileSync(fullPath, 'utf-8')
+    }
+  }
+  return files
+}
+
+const EXTRA_DIRS = ['bin', 'references', 'templates', 'vendor', 'migrations']
+
+const entries = readdirSync(SKILLS_DIR, { withFileTypes: true })
+  .filter(e => e.isDirectory() && existsSync(join(SKILLS_DIR, e.name, 'SKILL.md')))
+  .map(e => e.name)
+  .sort()
+
+const parts: string[] = []
+
+parts.push(`import { registerBundledSkill } from '../bundledSkills.js'`)
+parts.push('')
+
+for (const name of entries) {
+  const skillDir = join(SKILLS_DIR, name)
+  const mdPath = join(skillDir, 'SKILL.md')
+  const content = readFileSync(mdPath, 'utf-8')
+  const { frontmatter, body } = parseFrontmatter(content)
+
+  const promptText = body
+  const description = (frontmatter.description || name).replace(/\n/g, ' ').trim()
+  const allowedTools = frontmatter['allowed-tools'] as string[] | undefined
+  const argumentHint = frontmatter['argument-hint'] as string | undefined
+  const whenToUse = frontmatter.when_to_use as string | undefined
+  const version = frontmatter.version as string | undefined
+
+  const files: Record<string, string> = {}
+  for (const extraDir of EXTRA_DIRS) {
+    const extraPath = join(skillDir, extraDir)
+    if (existsSync(extraPath)) {
+      Object.assign(files, collectFiles(extraPath, extraDir))
+    }
+  }
+
+  const promptVar = `_PROMPT_${name.replace(/-/g, '_')}`
+  parts.push(`const ${promptVar} = \`${escapeForTemplateLiteral(promptText)}\``)
+  parts.push('')
+
+  const regLines: string[] = []
+  regLines.push(`  name: '${name}',`)
+  regLines.push(`  description: ${JSON.stringify(description)},`)
+  regLines.push(`  userInvocable: true,`)
+  if (version) regLines.push(`  version: ${JSON.stringify(version)},`)
+  if (argumentHint) regLines.push(`  argumentHint: ${JSON.stringify(argumentHint)},`)
+  if (whenToUse) regLines.push(`  whenToUse: ${JSON.stringify(whenToUse)},`)
+  if (allowedTools && allowedTools.length > 0) {
+    regLines.push(`  allowedTools: ${JSON.stringify(allowedTools)},`)
+  }
+
+  if (Object.keys(files).length > 0) {
+    const filesVar = `_FILES_${name.replace(/-/g, '_')}`
+    const filesObj = JSON.stringify(files, null, 2)
+    parts.push(`const ${filesVar} = ${filesObj} as Record<string, string>`)
+    parts.push('')
+    regLines.push(`  files: ${filesVar},`)
+  }
+
+  regLines.push(`  async getPromptForCommand(args) {`)
+  regLines.push(`    let prompt = ${promptVar}`)
+  regLines.push(`    if (args) prompt += \`\\n\\n\${args}\``)
+  regLines.push(`    return [{ type: 'text', text: prompt }]`)
+  regLines.push(`  },`)
+
+  parts.push(`registerBundledSkill({`)
+  parts.push(regLines.join('\n'))
+  parts.push('})')
+  parts.push('')
+}
+
+parts.unshift(`// Auto-generated by scripts/generate-gstack-skills.ts — DO NOT EDIT\n`)
+
+const output = parts.join('\n')
+
+import { writeFileSync, mkdirSync } from 'fs'
+import { dirname } from 'path'
+mkdirSync(dirname(OUT_FILE), { recursive: true })
+writeFileSync(OUT_FILE, output)
+console.log(`Generated ${OUT_FILE} (${entries.length} skills, ${(output.length / 1024).toFixed(0)}KB)`)

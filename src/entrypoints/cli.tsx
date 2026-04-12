@@ -1,6 +1,6 @@
 import { feature } from 'bun:bundle';
-import { readFileSync as _nfReadSync, writeFileSync as _nfWriteSync, existsSync as _nfExists } from 'node:fs';
-import { join as _nfJoin } from 'node:path';
+import { readFileSync as _nfReadSync, writeFileSync as _nfWriteSync, existsSync as _nfExists, cpSync as _nfCpSync, readdirSync as _nfReaddirSync } from 'node:fs';
+import { join as _nfJoin, dirname as _nfDirname, resolve as _nfResolve } from 'node:path';
 import { homedir as _nfHome } from 'node:os';
 
 // ── NekoFree config: load from ~/.nekofree/config.json (must be before any auth/config imports) ───
@@ -50,6 +50,47 @@ try {
       language: 'Russian',
       outputStyle: 'Terse',
     }, null, 2) + '\n');
+  }
+
+  // Deploy bundled skills from <binary_dir>/skills/ to ~/.nekofree/skills/ on first run
+  const _nfSkillsDir = _nfJoin(_nfDir, 'skills');
+  const _nfSkillsMarker = _nfJoin(_nfDir, '.skills-deployed');
+  const _nfNeedRedeploy = !_nfExists(_nfSkillsMarker) ||
+    (_nfExists(_nfSkillsMarker) && _nfReadSync(_nfSkillsMarker, 'utf-8').trim() !== MACRO.VERSION);
+  if (_nfNeedRedeploy) {
+    try {
+      const { rmSync: _rm, mkdirSync: _mk } = require('node:fs');
+      const _nfBinDir = _nfDirname(process.execPath);
+      const _nfBundledSkills = _nfResolve(_nfBinDir, 'skills');
+      if (_nfExists(_nfBundledSkills)) {
+        if (_nfExists(_nfSkillsDir)) _rm(_nfSkillsDir, { recursive: true, force: true });
+        _mk(_nfSkillsDir, { recursive: true });
+        for (const _nfEntry of _nfReaddirSync(_nfBundledSkills, { withFileTypes: true })) {
+          if (!_nfEntry.isDirectory()) continue;
+          const _nfSrc = _nfJoin(_nfBundledSkills, _nfEntry.name);
+          const _nfDst = _nfJoin(_nfSkillsDir, _nfEntry.name);
+          if (!_nfExists(_nfJoin(_nfSrc, 'SKILL.md')) && _nfEntry.name !== '_bin') continue;
+          _nfCpSync(_nfSrc, _nfDst, { recursive: true });
+        }
+        // Fix paths: replace ~/.claude/skills/gstack/bin/ with ~/.nekofree/skills/_bin/
+        const { readFileSync: _rfs, writeFileSync: _wfs, readdirSync: _rds } = require('node:fs');
+        const _binRef = _nfJoin(_nfSkillsDir, '_bin');
+        for (const _nfSkillEntry of _rds(_nfSkillsDir, { withFileTypes: true })) {
+          if (!_nfSkillEntry.isDirectory() || _nfSkillEntry.name === '_bin') continue;
+          const _nfSkillMd = _nfJoin(_nfSkillsDir, _nfSkillEntry.name, 'SKILL.md');
+          if (_nfExists(_nfSkillMd)) {
+            let _nfContent = _rfs(_nfSkillMd, 'utf-8');
+            _nfContent = _nfContent.replace(/~\/\.claude\/skills\/gstack\/bin\//g, _binRef + '/');
+            _nfContent = _nfContent.replace(/\$\{CLAUDE_SKILL_DIR\}\/\.\.\/careful\/bin\//g, _binRef + '/');
+            _nfContent = _nfContent.replace(/\$\{CLAUDE_SKILL_DIR\}\/\.\.\/freeze\/bin\//g, _binRef + '/');
+            _nfContent = _nfContent.replace(/\$\{CLAUDE_SKILL_DIR\}\/\.\.\/document-release\/SKILL\.md/g, _nfJoin(_nfSkillsDir, 'document-release', 'SKILL.md'));
+            _nfContent = _nfContent.replace(/\$\{CLAUDE_SKILL_DIR\}\/\.\.\/qa-only\/SKILL\.md/g, _nfJoin(_nfSkillsDir, 'qa-only', 'SKILL.md'));
+            _wfs(_nfSkillMd, _nfContent);
+          }
+        }
+      }
+      _nfWriteSync(_nfSkillsMarker, MACRO.VERSION + '\n');
+    } catch (_e: any) { /* non-critical */ }
   }
 } catch { /* first-run write may fail on read-only FS — fall through to defaults */ }
 
