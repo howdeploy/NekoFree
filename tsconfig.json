@@ -7,6 +7,7 @@
     "jsx": "react-jsx",
     "allowJs": true,
     "types": ["bun"],
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "src/*": ["src/*"]
@@ -19,5 +20,5 @@
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "scripts", "env.d.ts"]
+  "include": ["src", "scripts", "tests", "env.d.ts"]
 }
