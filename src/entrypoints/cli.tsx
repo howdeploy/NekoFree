@@ -5,19 +5,38 @@ import { homedir as _nfHome } from 'node:os';
 
 // ── NekoFree config: load from ~/.nekofree/config.json (must be before any auth/config imports) ───
 // eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
-const _nfDir = _nfJoin(process.env.CLAUDE_CONFIG_DIR || _nfJoin(_nfHome(), '.nekofree'));
+const _nfDir = _nfJoin(process.env.NEKOFREE_CONFIG_DIR || _nfJoin(_nfHome(), '.nekofree'));
 // eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
 const _nfConfigPath = _nfJoin(_nfDir, 'config.json');
 // eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
 const _nfLegacyPath = _nfJoin(process.env.NEKOFREE_CONFIG_DIR || _nfHome(), '.nekofree.json');
+
+// Multi-provider config type
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
-const _nfDefaults = {
-  baseUrl: 'https://gateway.nekocode.app/alpha',
-  apiKey: '',
-  model: 'claude-opus-4-6',
-};
+type _NfProviderCfg = Record<string, string>;
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
-let _nfConfig: { baseUrl: string; apiKey: string; model: string } = _nfDefaults;
+type _NfConfig = { activeProvider: string; providers: Record<string, _NfProviderCfg> };
+// eslint-disable-next-line custom-rules/no-top-level-side-effects
+let _nfCfg: _NfConfig = { activeProvider: '', providers: {} };
+
+// Migrate old flat format { baseUrl, apiKey, model } → multi-provider
+// eslint-disable-next-line custom-rules/no-top-level-side-effects
+function _nfMigrate(raw: Record<string, unknown>): _NfConfig {
+  if (typeof raw.activeProvider === 'string' && raw.providers) return raw as unknown as _NfConfig;
+  const baseUrl = (raw.baseUrl as string) || '';
+  const apiKey = (raw.apiKey as string) || '';
+  const model = (raw.model as string) || '';
+  const pc: _NfProviderCfg = {};
+  if (apiKey) pc.apiKey = apiKey;
+  if (model) pc.model = model;
+  let id: string;
+  if (baseUrl.includes('nekocode')) id = 'nekocode';
+  else if (baseUrl.includes('openrouter')) { id = 'openrouter'; }
+  else if (!baseUrl || baseUrl.includes('api.anthropic.com')) id = 'anthropic';
+  else { id = 'custom'; pc.baseUrl = baseUrl; }
+  return { activeProvider: id, providers: { [id]: pc } };
+}
+
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
 try {
   // Ensure ~/.nekofree/ directory exists
@@ -33,13 +52,17 @@ try {
     _nfUnlink(_nfLegacyPath);
   }
   if (_nfExists(_nfConfigPath)) {
-    _nfConfig = { ..._nfDefaults, ...JSON.parse(_nfReadSync(_nfConfigPath, 'utf-8')) };
+    const _nfRaw = JSON.parse(_nfReadSync(_nfConfigPath, 'utf-8'));
+    _nfCfg = _nfMigrate(_nfRaw);
+    // Persist migrated format if it changed
+    if (!_nfRaw.activeProvider && _nfCfg.activeProvider) {
+      _nfWriteSync(_nfConfigPath, JSON.stringify(_nfCfg, null, 2) + '\n');
+    }
   } else {
+    // First run — create empty config, /login will guide the user
     _nfWriteSync(_nfConfigPath, JSON.stringify({
-      _comment: 'NekoFree config — replace apiKey with your own Anthropic API key, or change baseUrl to use a different provider.',
-      baseUrl: _nfDefaults.baseUrl,
-      apiKey: _nfDefaults.apiKey,
-      model: _nfDefaults.model,
+      activeProvider: '',
+      providers: {},
     }, null, 2) + '\n');
   }
   // Ensure default settings.json
@@ -63,8 +86,14 @@ try {
       const _nfBinDir = _nfDirname(process.execPath);
       const _nfBundledSkills = _nfResolve(_nfBinDir, 'skills');
       if (_nfExists(_nfBundledSkills)) {
-        if (_nfExists(_nfSkillsDir)) _rm(_nfSkillsDir, { recursive: true, force: true });
         _mk(_nfSkillsDir, { recursive: true });
+        // Only overwrite bundled skills, preserve user-added ones
+        for (const _nfEntry of _nfReaddirSync(_nfBundledSkills, { withFileTypes: true })) {
+          if (_nfEntry.isDirectory()) {
+            const _nfDstClean = _nfJoin(_nfSkillsDir, _nfEntry.name);
+            if (_nfExists(_nfDstClean)) _rm(_nfDstClean, { recursive: true, force: true });
+          }
+        }
         for (const _nfEntry of _nfReaddirSync(_nfBundledSkills, { withFileTypes: true })) {
           if (!_nfEntry.isDirectory()) continue;
           const _nfSrc = _nfJoin(_nfBundledSkills, _nfEntry.name);
@@ -90,40 +119,49 @@ try {
         }
       }
       _nfWriteSync(_nfSkillsMarker, MACRO.VERSION + '\n');
-    } catch (_e: any) { /* non-critical */ }
+    } catch (_e: any) {
+      process.stderr.write(`[nekofree] Warning: skill deploy failed: ${_e?.message ?? _e}\n`);
+    }
   }
 } catch { /* first-run write may fail on read-only FS — fall through to defaults */ }
 
-// ── NekoFree: prompt for API key if missing ──────────────────────────────────
+// ── NekoFree: apply active provider env vars ─────────────────────────────────
 // eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
-if (!_nfConfig.apiKey && !process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
-  const _rl = require('node:readline').createInterface({ input: process.stdin, output: process.stdout });
-  const _nfAsk = (q: string): Promise<string> => new Promise(r => _rl.question(q, (a: string) => { _rl.close(); r(a.trim()); }));
-  // eslint-disable-next-line custom-rules/no-top-level-side-effects
-  const _nfKey = await _nfAsk('\x1b[36m[nekofree]\x1b[0m API-ключ не найден. Введите ANTHROPIC_API_KEY: ');
-  if (_nfKey) {
-    _nfConfig.apiKey = _nfKey;
-    try {
-      const _nfCurrent = _nfExists(_nfConfigPath) ? JSON.parse(_nfReadSync(_nfConfigPath, 'utf-8')) : {};
-      _nfWriteSync(_nfConfigPath, JSON.stringify({ ..._nfCurrent, apiKey: _nfKey }, null, 2) + '\n');
-    } catch { /* ignore write error */ }
-  } else {
-    process.stderr.write('\x1b[33m[nekofree]\x1b[0m Ключ не введён. Установите ANTHROPIC_API_KEY или отредактируйте ~/.nekofree/config.json\n');
-    process.exit(1);
-  }
-}
+{
+  const _nfActive = _nfCfg.activeProvider;
+  const _nfPc = _nfCfg.providers[_nfActive] || {};
 
-// eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
-if (!process.env.ANTHROPIC_BASE_URL) {
-  process.env.ANTHROPIC_BASE_URL = _nfConfig.baseUrl;
-}
-// eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
-if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN && _nfConfig.apiKey) {
-  process.env.ANTHROPIC_API_KEY = _nfConfig.apiKey;
-}
-// eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
-if (!process.env.ANTHROPIC_MODEL) {
-  process.env.ANTHROPIC_MODEL = _nfConfig.model;
+  // Provider-specific env vars (only set if not already in env)
+  if (_nfActive === 'nekocode') {
+    if (!process.env.ANTHROPIC_BASE_URL) process.env.ANTHROPIC_BASE_URL = 'https://gateway.nekocode.app/alpha';
+    if (!process.env.ANTHROPIC_API_KEY && _nfPc.apiKey) process.env.ANTHROPIC_API_KEY = _nfPc.apiKey;
+  } else if (_nfActive === 'openrouter') {
+    if (!process.env.ANTHROPIC_BASE_URL) process.env.ANTHROPIC_BASE_URL = 'https://openrouter.ai/api/v1';
+    if (!process.env.ANTHROPIC_API_KEY && _nfPc.apiKey) process.env.ANTHROPIC_API_KEY = _nfPc.apiKey;
+  } else if (_nfActive === 'bedrock') {
+    process.env.CLAUDE_CODE_USE_BEDROCK = '1';
+    if (_nfPc.region && !process.env.AWS_REGION) process.env.AWS_REGION = _nfPc.region;
+  } else if (_nfActive === 'vertex') {
+    process.env.CLAUDE_CODE_USE_VERTEX = '1';
+    if (_nfPc.projectId && !process.env.ANTHROPIC_VERTEX_PROJECT_ID) process.env.ANTHROPIC_VERTEX_PROJECT_ID = _nfPc.projectId;
+    if (_nfPc.region && !process.env.CLOUD_ML_REGION) process.env.CLOUD_ML_REGION = _nfPc.region;
+  } else if (_nfActive === 'custom') {
+    if (_nfPc.baseUrl && !process.env.ANTHROPIC_BASE_URL) process.env.ANTHROPIC_BASE_URL = _nfPc.baseUrl;
+    if (!process.env.ANTHROPIC_API_KEY && _nfPc.apiKey) process.env.ANTHROPIC_API_KEY = _nfPc.apiKey;
+  } else if (_nfActive === 'anthropic') {
+    // Direct Anthropic — no custom base URL needed
+    if (!process.env.ANTHROPIC_API_KEY && _nfPc.apiKey) process.env.ANTHROPIC_API_KEY = _nfPc.apiKey;
+  }
+
+  // Model override from provider config
+  if (_nfPc.model && !process.env.ANTHROPIC_MODEL) {
+    process.env.ANTHROPIC_MODEL = _nfPc.model;
+  }
+
+  // First run hint — if no provider configured and no env key, show hint
+  if (!_nfActive && !process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
+    process.stderr.write('\x1b[36m[nekofree]\x1b[0m Провайдер не настроен. Запустите nekofree и выполните /login\n');
+  }
 }
 
 // ── NekoFree token economy defaults ───────────────────────────────────────────
@@ -143,7 +181,7 @@ if (!process.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS) {
 // the changed lines instead of the full content. Saves 80-95% tokens.
 // eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
 if (!process.env.READ_ONCE_DIFF) {
-  process.env.READ_ONCE_DIFF = '1';
+  process.env.READ_ONCE_DIFF = '0';
 }
 
 // Define MACRO global for development (normally injected by bun build --define)

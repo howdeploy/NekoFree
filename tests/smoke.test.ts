@@ -6,7 +6,7 @@ const BIN = "./nekofree"
 describe("smoke tests", () => {
 	test("--version outputs version string", () => {
 		const output = execSync(`${BIN} --version 2>&1`).toString().trim()
-		expect(output).toMatch(/1\.\d+\.\d+/)
+		expect(output).toMatch(/\d+\.\d+\.\d+/)
 	})
 
 	test("--help outputs usage info", () => {

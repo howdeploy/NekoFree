@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -23,16 +26,16 @@ jobs:
 
       - name: Lint (changed files only)
         if: github.event_name == 'pull_request'
-        run: bunx biome check --changed --since=${{ github.base_ref }} --max-diagnostics=50
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: bunx biome check --changed --since="$BASE_REF" --max-diagnostics=50
 
-      - name: Lint (all, info only)
+      - name: Lint (all)
         if: github.event_name == 'push'
-        run: bun run lint --max-diagnostics=20 || true
+        run: bun run lint --max-diagnostics=20
 
       - name: Build
         run: bun run build
 
       - name: Smoke test
-        run: |
-          ./nekofree --version
-          ./nekofree --help
+        run: bun test

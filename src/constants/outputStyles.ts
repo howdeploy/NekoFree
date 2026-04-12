@@ -39,7 +39,6 @@ These insights should be included in the conversation, not in the codebase. You 
 export const DEFAULT_OUTPUT_STYLE_NAME = 'Terse'
 
 export const OUTPUT_STYLE_CONFIG: OutputStyles = {
-  default: null,
   Terse: {
     name: 'Terse',
     source: 'built-in',

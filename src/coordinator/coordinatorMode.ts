@@ -76,3 +76,16 @@ export function matchSessionMode(
     ? 'Entered coordinator mode to match resumed session.'
     : 'Exited coordinator mode to match resumed session.'
 }
+
+// Stubs — coordinator mode is stripped from NekoFree but conditional
+// require() sites still reference these exports behind feature guards.
+export function getCoordinatorUserContext(
+  _mcpClients: ReadonlyArray<{ name: string }>,
+  _scratchpadDir?: string,
+): Record<string, string> {
+  return {}
+}
+
+export function getCoordinatorSystemPrompt(): string {
+  return ''
+}

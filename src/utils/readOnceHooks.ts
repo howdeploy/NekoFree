@@ -65,23 +65,39 @@ function estimateTokens(fileSize: number): number {
 function simpleDiff(oldContent: string, newContent: string): string[] {
   const oldLines = oldContent.split('\n')
   const newLines = newContent.split('\n')
-  const diff: string[] = []
+  const m = oldLines.length
+  const n = newLines.length
 
-  const maxLen = Math.max(oldLines.length, newLines.length)
-  for (let i = 0; i < maxLen; i++) {
-    const ol = oldLines[i]
-    const nl = newLines[i]
-    if (ol === nl) continue
-    if (ol !== undefined && nl === undefined) {
-      diff.push(`-${i + 1}: ${ol}`)
-    } else if (ol === undefined && nl !== undefined) {
-      diff.push(`+${i + 1}: ${nl}`)
-    } else if (ol !== nl) {
-      diff.push(`-${i + 1}: ${ol}`)
-      diff.push(`+${i + 1}: ${nl}`)
+  // Bail out for very large files to avoid O(m*n) memory
+  if (m * n > 1_000_000) return [`(file too large for inline diff: ${m}×${n} lines)`]
+
+  // LCS table
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array<number>(n + 1).fill(0))
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i]![j] = oldLines[i - 1] === newLines[j - 1]
+        ? dp[i - 1]![j - 1]! + 1
+        : Math.max(dp[i - 1]![j]!, dp[i]![j - 1]!)
     }
   }
-  return diff
+
+  // Backtrack to produce diff lines
+  const result: string[] = []
+  let i = m, j = n
+  const ops: string[] = []
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
+      i--; j--
+    } else if (j > 0 && (i === 0 || dp[i]![j - 1]! >= dp[i - 1]![j]!)) {
+      ops.unshift(`+${j}: ${newLines[j - 1]}`)
+      j--
+    } else {
+      ops.unshift(`-${i}: ${oldLines[i - 1]}`)
+      i--
+    }
+  }
+
+  return ops
 }
 
 // --- PreToolUse callback for Read ---
@@ -124,11 +140,7 @@ async function handlePreReadToolUse(
     if (age >= ttl) {
       // Cache expired — allow re-read (context may have compacted)
       cache.set(filePath, { mtimeMs: stat.mtimeMs, ts: now })
-      if (isDiffMode()) {
-        try {
-          snapshots.set(filePath, readFileSync(filePath, 'utf-8'))
-        } catch { /* ignore */ }
-      }
+      // Snapshot will be captured in the "first read" path below after falling through
       return {}
     }
 
@@ -142,7 +154,7 @@ async function handlePreReadToolUse(
     return {
       hookSpecificOutput: {
         hookEventName: 'PreToolUse',
-        permissionDecision: 'allow',
+        permissionDecision: 'deny',
         permissionDecisionReason:
           `read-once: ${name} (~${tokens} tokens) already in context ` +
           `(read ${minutesAgo}m ago, unchanged). ` +
@@ -176,7 +188,7 @@ async function handlePreReadToolUse(
         return {
           hookSpecificOutput: {
             hookEventName: 'PreToolUse',
-            permissionDecision: 'allow',
+            permissionDecision: 'deny',
             permissionDecisionReason:
               `read-once: ${name} changed since last read. ` +
               `You already have the previous version in context. ` +

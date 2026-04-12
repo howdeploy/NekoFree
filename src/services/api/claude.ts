@@ -1257,7 +1257,7 @@ async function* queryModel(
     (options.enablePromptCaching ?? getPromptCachingEnabled(options.model)) &&
     toolSchemas.length > 0
   ) {
-    toolSchemas[toolSchemas.length - 1]!.cache_control = getCacheControl()
+    toolSchemas[toolSchemas.length - 1]!.cache_control = getCacheControl({ querySource: options.querySource })
   }
 
   if (useToolSearch) {

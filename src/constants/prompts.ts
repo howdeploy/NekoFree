@@ -25,7 +25,7 @@ import {
 } from '../utils/model/model.js'
 import { getSkillToolCommands } from 'src/commands.js'
 import { SKILL_TOOL_NAME } from '../tools/SkillTool/constants.js'
-import { getOutputStyleConfig } from './outputStyles.js'
+import { getOutputStyleConfig, DEFAULT_OUTPUT_STYLE_NAME } from './outputStyles.js'
 import type {
   MCPServerConnection,
   ConnectedMCPServer,
@@ -567,7 +567,7 @@ ${CYBER_RISK_INSTRUCTION}`,
     getSimpleToneAndStyleSection(),
     // Skip output efficiency when Terse is active — Terse already covers
     // conciseness rules in a more compact form, avoiding ~200 tokens of duplication.
-    outputStyleConfig?.name === 'Terse' ? null : getOutputEfficiencySection(),
+    outputStyleConfig?.name === DEFAULT_OUTPUT_STYLE_NAME ? null : getOutputEfficiencySection(),
     // === BOUNDARY MARKER - DO NOT MOVE OR REMOVE ===
     ...(shouldUseGlobalCacheScope() ? [SYSTEM_PROMPT_DYNAMIC_BOUNDARY] : []),
     // --- Dynamic content (registry-managed) ---
