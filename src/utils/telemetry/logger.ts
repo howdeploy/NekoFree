@@ -1,4 +1,4 @@
-import type { DiagLogger } from '@opentelemetry/api'
+import type { DiagLogger } from 'src/types/otel-stubs.js'
 import { logForDebugging } from '../debug.js'
 import { logError } from '../log.js'
 export class ClaudeCodeDiagLogger implements DiagLogger {

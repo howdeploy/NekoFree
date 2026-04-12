@@ -1,4 +1,4 @@
-import type { Attributes } from '@opentelemetry/api'
+import type { Attributes } from 'src/types/otel-stubs.js'
 import { getSessionId } from 'src/bootstrap/state.js'
 import { getOauthAccountInfo } from './auth.js'
 import { getOrCreateUserID } from './config.js'

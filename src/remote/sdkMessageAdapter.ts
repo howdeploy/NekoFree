@@ -285,13 +285,6 @@ export function isSessionEndMessage(msg: SDKMessage): boolean {
 }
 
 /**
- * Check if an SDKResultMessage indicates success
- */
-export function isSuccessResult(msg: SDKResultMessage): boolean {
-  return msg.subtype === 'success'
-}
-
-/**
  * Extract the result text from a successful SDKResultMessage
  */
 export function getResultText(msg: SDKResultMessage): string | null {
