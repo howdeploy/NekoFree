@@ -149,6 +149,23 @@ function LoginWizard({ onDone, initialProvider }: {
     onDone('Отменено.', { display: 'system' })
   }, [onDone])
 
+  // ESC in field step → go back to provider selection (or previous field)
+  const handleFieldCancel = React.useCallback(() => {
+    if (state.step !== 'field') return
+    const def = getProvider(state.providerId)
+    if (def && state.fieldIdx > 0) {
+      // Go back to previous field
+      const prevField = def.fields[state.fieldIdx - 1]!
+      setState({ ...state, fieldIdx: state.fieldIdx - 1 })
+      setInputValue(state.values[prevField.key] || '')
+      setCursorOffset(0)
+    } else {
+      // Go back to provider selection
+      setState({ step: 'select' })
+      setInputValue('')
+    }
+  }, [state])
+
   // ── Field input ──
 
   const handleFieldSubmit = React.useCallback((input: string) => {
@@ -194,7 +211,7 @@ function LoginWizard({ onDone, initialProvider }: {
 
   if (state.step === 'select') {
     return (
-      <Dialog title="NekoFree — выбор провайдера" onCancel={handleCancel} isCancelActive={false}>
+      <Dialog title="NekoFree — выбор провайдера" onCancel={handleCancel}>
         <Box flexDirection="column">
           <Box marginBottom={1}>
             <Text>Выберите API-провайдер:</Text>
@@ -221,8 +238,7 @@ function LoginWizard({ onDone, initialProvider }: {
     return (
       <Dialog
         title={`${def.label}${stepText}`}
-        onCancel={handleCancel}
-        isCancelActive={false}
+        onCancel={handleFieldCancel}
       >
         <Box flexDirection="column">
           <Box marginBottom={1}>
