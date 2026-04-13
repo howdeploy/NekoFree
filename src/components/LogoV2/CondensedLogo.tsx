@@ -9,15 +9,27 @@ import { getLogoDisplayData, truncatePath } from '../../utils/logoV2Utils.js';
 import { renderModelSetting } from '../../utils/model/model.js';
 import { OffscreenFreeze } from '../OffscreenFreeze.js';
 import { NekoMascot } from './NekoMascot.js';
+import { getProvider } from '../../commands/login/providers.js';
+import { getGlobalConfig } from '../../utils/config.js';
 
-function getApiEndpoint(): string {
-  const baseUrl = process.env.ANTHROPIC_BASE_URL || '';
+function getActiveProviderLabel(): string {
   try {
-    const url = new URL(baseUrl);
-    return url.host;
-  } catch {
-    return baseUrl || 'api.anthropic.com';
+    const cfg = getGlobalConfig() as Record<string, unknown>;
+    const activeId = cfg.activeProvider as string | undefined;
+    if (activeId) {
+      const def = getProvider(activeId);
+      if (def) return def.label;
+    }
+  } catch { /* ignore */ }
+  // Fallback: derive from env vars
+  const baseUrl = process.env.ANTHROPIC_BASE_URL || '';
+  if (process.env.CLAUDE_CODE_USE_OPENAI) return 'OpenAI Codex';
+  if (process.env.CLAUDE_CODE_USE_BEDROCK) return 'AWS Bedrock';
+  if (process.env.CLAUDE_CODE_USE_VERTEX) return 'Google Vertex AI';
+  if (baseUrl) {
+    try { return new URL(baseUrl).host; } catch { return baseUrl; }
   }
+  return 'Anthropic API';
 }
 
 export function CondensedLogo(): React.ReactElement {
@@ -32,7 +44,7 @@ export function CondensedLogo(): React.ReactElement {
 
   const maxWidth = Math.min(columns, 50);
   const modelText = truncate(modelDisplayName + effortSuffix, maxWidth);
-  const apiEndpoint = getApiEndpoint();
+  const apiEndpoint = getActiveProviderLabel();
   const cwdWidth = agentName ? maxWidth - agentName.length - 4 : maxWidth;
   const truncatedCwd = truncatePath(cwd, Math.max(cwdWidth, 10));
   const cwdLine = agentName ? `@${agentName} \u00b7 ${truncatedCwd}` : truncatedCwd;

@@ -54,6 +54,16 @@ export async function validateModel(
     return { valid: true }
   }
 
+  // NekoFree: skip API validation for models in the active provider's catalog
+  try {
+    const { getActiveProviderModels } = await import('../../commands/login/providers.js')
+    const providerModels = getActiveProviderModels()
+    if (providerModels?.some((m: { value: string }) => m.value === normalizedModel)) {
+      validModelCache.set(normalizedModel, true)
+      return { valid: true }
+    }
+  } catch { /* providers module not available */ }
+
   // Check cache first
   if (validModelCache.has(normalizedModel)) {
     return { valid: true }

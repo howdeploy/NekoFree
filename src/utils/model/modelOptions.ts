@@ -498,6 +498,25 @@ function getKnownModelOption(model: string): ModelOption | null {
 }
 
 export function getModelOptions(fastMode = false): ModelOption[] {
+  // NekoFree: if active provider has its own model catalog, use it instead
+  try {
+    const { getActiveProviderModels } = require('../../commands/login/providers.js')
+    const providerModels = getActiveProviderModels()
+    if (providerModels && providerModels.length > 0) {
+      const nfOptions: ModelOption[] = providerModels.map((m: { value: string; label: string; description: string }) => ({
+        value: m.value,
+        label: m.label,
+        description: m.description,
+      }))
+      // Also add current custom model if set and not in list
+      const currentModel = getUserSpecifiedModelSetting()
+      if (currentModel && !nfOptions.some(o => o.value === currentModel)) {
+        nfOptions.push({ value: currentModel, label: currentModel, description: 'Текущая модель' })
+      }
+      return filterModelOptionsByAllowlist(nfOptions)
+    }
+  } catch { /* providers module not available — use defaults */ }
+
   const options = getModelOptionsBase(fastMode)
 
   // Add the custom model from the ANTHROPIC_CUSTOM_MODEL_OPTION env var

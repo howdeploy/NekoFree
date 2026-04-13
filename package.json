@@ -1,6 +1,6 @@
 {
   "name": "nekofree",
-  "version": "1.2.1",
+  "version": "1.4.0",
   "private": true,
   "description": "Reconstructed Bun CLI workspace for the Claude Code source snapshot.",
   "type": "module",

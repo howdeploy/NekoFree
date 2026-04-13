@@ -6,6 +6,9 @@ import { homedir as _nfHome } from 'node:os';
 // ── NekoFree config: load from ~/.nekofree/config.json (must be before any auth/config imports) ───
 // eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
 const _nfDir = _nfJoin(process.env.NEKOFREE_CONFIG_DIR || _nfJoin(_nfHome(), '.nekofree'));
+// Sync CLAUDE_CONFIG_DIR so saveGlobalConfig/getClaudeConfigHomeDir write to the same dir
+// eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
+if (!process.env.CLAUDE_CONFIG_DIR) process.env.CLAUDE_CONFIG_DIR = _nfDir;
 // eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
 const _nfConfigPath = _nfJoin(_nfDir, 'config.json');
 // eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
@@ -145,12 +148,31 @@ try {
     process.env.CLAUDE_CODE_USE_VERTEX = '1';
     if (_nfPc.projectId && !process.env.ANTHROPIC_VERTEX_PROJECT_ID) process.env.ANTHROPIC_VERTEX_PROJECT_ID = _nfPc.projectId;
     if (_nfPc.region && !process.env.CLOUD_ML_REGION) process.env.CLOUD_ML_REGION = _nfPc.region;
+  } else if (_nfActive === 'glm') {
+    if (!process.env.ANTHROPIC_BASE_URL) process.env.ANTHROPIC_BASE_URL = 'https://api.z.ai/api/anthropic';
+    if (!process.env.ANTHROPIC_API_KEY && _nfPc.apiKey) process.env.ANTHROPIC_API_KEY = _nfPc.apiKey;
+    if (!process.env.ANTHROPIC_MODEL && !_nfPc.model) process.env.ANTHROPIC_MODEL = 'glm-4.7';
+  } else if (_nfActive === 'opencode') {
+    if (!process.env.ANTHROPIC_BASE_URL) process.env.ANTHROPIC_BASE_URL = 'https://api.opencode.ai/v1';
+    if (!process.env.ANTHROPIC_API_KEY && _nfPc.apiKey) process.env.ANTHROPIC_API_KEY = _nfPc.apiKey;
   } else if (_nfActive === 'custom') {
     if (_nfPc.baseUrl && !process.env.ANTHROPIC_BASE_URL) process.env.ANTHROPIC_BASE_URL = _nfPc.baseUrl;
     if (!process.env.ANTHROPIC_API_KEY && _nfPc.apiKey) process.env.ANTHROPIC_API_KEY = _nfPc.apiKey;
   } else if (_nfActive === 'anthropic') {
     // Direct Anthropic — no custom base URL needed
     if (!process.env.ANTHROPIC_API_KEY && _nfPc.apiKey) process.env.ANTHROPIC_API_KEY = _nfPc.apiKey;
+  } else if (_nfActive === 'claude-oauth' || _nfActive === 'console-oauth') {
+    // OAuth providers — tokens managed by secure storage
+    // No env vars to set; auth verification happens later in useApiKeyVerification
+  } else if (_nfActive === 'codex-oauth') {
+    // OpenAI Codex — only activate if tokens are present in config
+    const _nfCodexTokens = (_nfCfg as any).codexOAuth;
+    if (_nfCodexTokens?.accessToken) {
+      process.env.CLAUDE_CODE_USE_OPENAI = '1';
+      if (!process.env.ANTHROPIC_MODEL && !_nfPc.model) process.env.ANTHROPIC_MODEL = 'gpt-5.2-codex';
+    } else {
+      process.stderr.write('\x1b[36m[nekofree]\x1b[0m Провайдер OpenAI Codex не авторизован. Выполните /login для настройки.\n');
+    }
   }
 
   // Model override from provider config
@@ -187,7 +209,7 @@ if (!process.env.READ_ONCE_DIFF) {
 // Define MACRO global for development (normally injected by bun build --define)
 if (typeof MACRO === 'undefined') {
   (globalThis as any).MACRO = {
-    VERSION: '1.2.1-dev',
+    VERSION: '1.4.0',
     BUILD_TIME: new Date().toISOString(),
     PACKAGE_URL: 'nekofree',
     FEEDBACK_CHANNEL: 'github',

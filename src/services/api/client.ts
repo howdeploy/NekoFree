@@ -306,18 +306,25 @@ export async function getAnthropicClient({
   }
 
   // ── Codex (OpenAI) provider via fetch adapter ─────────────────────
-  if (isCodexSubscriber()) {
+  if (getAPIProvider() === 'openai') {
     const codexTokens = getCodexOAuthTokens()
-    if (codexTokens?.accessToken) {
-      const codexFetch = createCodexFetch(codexTokens.accessToken)
-      const clientConfig: ConstructorParameters<typeof Anthropic>[0] = {
-        apiKey: 'codex-placeholder', // SDK requires a key but the fetch adapter handles auth
-        ...ARGS,
-        fetch: codexFetch as unknown as typeof globalThis.fetch,
-        ...(isDebugToStdErr() && { logger: createStderrLogger() }),
-      }
-      return new Anthropic(clientConfig)
+    if (!codexTokens?.accessToken) {
+      // OpenAI mode active but no tokens — throw immediately instead of
+      // falling through to Anthropic SDK (which would send requests with
+      // no valid key and produce confusing errors).
+      throw Object.assign(
+        new Error('Codex OAuth токены не найдены. Выполните /login → OpenAI Codex (OAuth) для авторизации.'),
+        { status: 401 },
+      )
     }
+    const codexFetch = createCodexFetch(codexTokens.accessToken)
+    const clientConfig: ConstructorParameters<typeof Anthropic>[0] = {
+      apiKey: 'codex-placeholder', // SDK requires a key but the fetch adapter handles auth
+      ...ARGS,
+      fetch: codexFetch as unknown as typeof globalThis.fetch,
+      ...(isDebugToStdErr() && { logger: createStderrLogger() }),
+    }
+    return new Anthropic(clientConfig)
   }
 
   // Determine authentication method based on available tokens

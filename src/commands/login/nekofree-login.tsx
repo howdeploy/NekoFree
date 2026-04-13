@@ -1,14 +1,16 @@
 import * as React from 'react'
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
-import { join } from 'node:path'
-import { homedir } from 'node:os'
 import { Box, Text } from '../../ink.js'
 import { Dialog } from '../../components/design-system/Dialog.js'
 import { Select } from '../../components/CustomSelect/select.js'
+import { ConsoleOAuthFlow } from '../../components/ConsoleOAuthFlow.js'
+import { runCodexOAuthFlow } from '../../services/oauth/codex-client.js'
+import { saveCodexOAuthTokens } from '../../utils/auth.js'
+import { Spinner } from '../../components/Spinner.js'
 import TextInput from '../../components/TextInput.js'
 import { useTerminalSize } from '../../hooks/useTerminalSize.js'
 import type { LocalJSXCommandOnDone } from '../../types/command.js'
 import type { LocalJSXCommandContext } from '../../commands.js'
+import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import {
   PROVIDERS,
   getProvider,
@@ -17,25 +19,28 @@ import {
   type NfProviderConfig,
 } from './providers.js'
 
-const NF_DIR = join(
-  process.env.NEKOFREE_CONFIG_DIR || join(homedir(), '.nekofree'),
-)
-const NF_CONFIG = join(NF_DIR, 'config.json')
-
+/**
+ * Read NekoFree provider config from GlobalConfig (same config.json, single source of truth).
+ * Uses the locked config system to avoid race conditions with GlobalConfig writes.
+ */
 function readConfig(): NfConfig {
-  try {
-    if (!existsSync(NF_DIR)) mkdirSync(NF_DIR, { recursive: true })
-    if (existsSync(NF_CONFIG)) {
-      const raw = JSON.parse(readFileSync(NF_CONFIG, 'utf-8'))
-      return migrateConfig(raw)
-    }
-  } catch { /* corrupted → fresh */ }
-  return { activeProvider: '', providers: {} }
+  const raw = getGlobalConfig() as Record<string, unknown>
+  if (typeof raw.activeProvider === 'string' && raw.providers) {
+    return { activeProvider: raw.activeProvider, providers: raw.providers as Record<string, NfProviderConfig> }
+  }
+  return migrateConfig(raw)
 }
 
+/**
+ * Save NekoFree provider config through GlobalConfig's locked write system.
+ * This prevents race conditions with concurrent GlobalConfig writes (numStartups, tips, etc.).
+ */
 function saveConfig(config: NfConfig): void {
-  if (!existsSync(NF_DIR)) mkdirSync(NF_DIR, { recursive: true })
-  writeFileSync(NF_CONFIG, JSON.stringify(config, null, 2) + '\n')
+  saveGlobalConfig(current => ({
+    ...current,
+    activeProvider: config.activeProvider,
+    providers: config.providers,
+  } as typeof current))
 }
 
 function maskKey(key: string): string {
@@ -65,14 +70,75 @@ function formatProviderStatus(config: NfConfig): string {
   return lines.join('\n')
 }
 
+// ── Codex OAuth (separate from ConsoleOAuthFlow) ──
+
+function CodexOAuthWizard({ onDone, onCancel }: {
+  onDone: () => void
+  onCancel: () => void
+}) {
+  const [status, setStatus] = React.useState<'starting' | 'waiting' | 'success' | 'error'>('starting')
+  const [url, setUrl] = React.useState('')
+  const [error, setError] = React.useState('')
+
+  React.useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const tokens = await runCodexOAuthFlow(async (authUrl) => {
+          if (!cancelled) {
+            setUrl(authUrl)
+            setStatus('waiting')
+          }
+        })
+        if (!cancelled) {
+          saveCodexOAuthTokens(tokens)
+          setStatus('success')
+          onDone()
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError((err as Error).message)
+          setStatus('error')
+        }
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  return (
+    <Dialog title="OpenAI Codex — OAuth" onCancel={onCancel}>
+      <Box flexDirection="column">
+        {status === 'starting' && (
+          <Box><Spinner /><Text> Запуск авторизации OpenAI...</Text></Box>
+        )}
+        {status === 'waiting' && (
+          <Box flexDirection="column">
+            <Text>Откройте ссылку в браузере для авторизации:</Text>
+            <Text color="cyan">{url}</Text>
+            <Box marginTop={1}><Text dimColor>Ожидание ответа... (ESC для отмены)</Text></Box>
+          </Box>
+        )}
+        {status === 'error' && (
+          <Box flexDirection="column">
+            <Text color="red">Ошибка: {error}</Text>
+            <Text dimColor>ESC для возврата</Text>
+          </Box>
+        )}
+      </Box>
+    </Dialog>
+  )
+}
+
 // ── Wizard states ──
 
 type WizardState =
   | { step: 'select' }
   | { step: 'field'; providerId: string; fieldIdx: number; values: Record<string, string> }
+  | { step: 'oauth'; providerId: string }
 
-function LoginWizard({ onDone, initialProvider }: {
+function LoginWizard({ onDone, onLoginSuccess, initialProvider }: {
   onDone: LocalJSXCommandOnDone
+  onLoginSuccess: () => void
   initialProvider?: string
 }) {
   const config = React.useMemo(() => readConfig(), [])
@@ -81,6 +147,10 @@ function LoginWizard({ onDone, initialProvider }: {
     if (initialProvider) {
       const def = getProvider(initialProvider)
       if (def) {
+        // OAuth providers → go straight to OAuth flow
+        if (def.oauth) {
+          return { step: 'oauth', providerId: initialProvider }
+        }
         const existing = config.providers[initialProvider] || {}
         if (def.fields.length === 0) {
           // No fields needed — just activate
@@ -92,16 +162,17 @@ function LoginWizard({ onDone, initialProvider }: {
     return { step: 'select' }
   })
 
-  // Handle no-field provider activation via initialProvider
+  // Handle no-field non-OAuth provider activation via initialProvider
   React.useEffect(() => {
     if (initialProvider && state.step === 'select') {
       const def = getProvider(initialProvider)
-      if (def && def.fields.length === 0) {
+      if (def && def.fields.length === 0 && !def.oauth) {
         config.activeProvider = initialProvider
         if (!config.providers[initialProvider]) config.providers[initialProvider] = {}
         saveConfig(config)
         applyProvider(initialProvider, config.providers[initialProvider]!)
-        onDone(`Провайдер переключён на ${def.label}.\nПерезапустите nekofree.`, { display: 'system' })
+        onLoginSuccess()
+        onDone(`Провайдер переключён на ${def.label}.`, { display: 'system' })
       }
     }
   }, [])
@@ -129,13 +200,20 @@ function LoginWizard({ onDone, initialProvider }: {
     const def = getProvider(providerId)
     if (!def) return
 
+    // OAuth providers → launch OAuth flow
+    if (def.oauth) {
+      setState({ step: 'oauth', providerId })
+      return
+    }
+
     if (def.fields.length === 0) {
       // No fields — just switch
       config.activeProvider = providerId
       if (!config.providers[providerId]) config.providers[providerId] = {}
       saveConfig(config)
       applyProvider(providerId, config.providers[providerId]!)
-      onDone(`Провайдер: ${def.label}.\nПерезапустите nekofree.`, { display: 'system' })
+      onLoginSuccess()
+      onDone(`Провайдер: ${def.label}.`, { display: 'system' })
       return
     }
 
@@ -165,6 +243,22 @@ function LoginWizard({ onDone, initialProvider }: {
       setInputValue('')
     }
   }, [state])
+
+  // ── OAuth completion ──
+
+  const handleOAuthDone = React.useCallback(() => {
+    if (state.step !== 'oauth') return
+    const def = getProvider(state.providerId)
+    config.activeProvider = state.providerId
+    if (!config.providers[state.providerId]) config.providers[state.providerId] = {}
+    saveConfig(config)
+    applyProvider(state.providerId, config.providers[state.providerId]!)
+    onLoginSuccess()
+    onDone(
+      `OAuth авторизация завершена (${def?.label || state.providerId}).`,
+      { display: 'system' },
+    )
+  }, [state, config, onDone])
 
   // ── Field input ──
 
@@ -200,8 +294,9 @@ function LoginWizard({ onDone, initialProvider }: {
       const summary = Object.entries(newValues)
         .map(([k, v]) => k === 'apiKey' ? `${k}: ${maskKey(v as string)}` : `${k}: ${v}`)
         .join(', ')
+      onLoginSuccess()
       onDone(
-        `Провайдер: ${def.label}\n${summary}\nПерезапустите nekofree для полного применения.`,
+        `Провайдер: ${def.label}\n${summary}`,
         { display: 'system' },
       )
     }
@@ -220,7 +315,7 @@ function LoginWizard({ onDone, initialProvider }: {
             options={options}
             onChange={handleProviderSelect}
             onCancel={handleCancel}
-            visibleOptionCount={6}
+            visibleOptionCount={8}
             layout="compact-vertical"
           />
         </Box>
@@ -261,6 +356,36 @@ function LoginWizard({ onDone, initialProvider }: {
     )
   }
 
+  if (state.step === 'oauth') {
+    const def = getProvider(state.providerId)!
+
+    // Codex uses its own OAuth flow (OpenAI, not Anthropic)
+    if (def.oauth === 'codex') {
+      return (
+        <CodexOAuthWizard
+          onDone={handleOAuthDone}
+          onCancel={() => setState({ step: 'select' })}
+        />
+      )
+    }
+
+    // Claude.ai / Console — use ConsoleOAuthFlow with forced method
+    const forceMethod = def.oauth === 'claude-ai' ? 'claudeai' as const : 'console' as const
+    return (
+      <Dialog
+        title={`${def.label} — OAuth`}
+        onCancel={() => {
+          setState({ step: 'select' })
+        }}
+      >
+        <ConsoleOAuthFlow
+          onDone={handleOAuthDone}
+          forceLoginMethod={forceMethod}
+        />
+      </Dialog>
+    )
+  }
+
   return null
 }
 
@@ -268,10 +393,11 @@ function LoginWizard({ onDone, initialProvider }: {
 
 export async function call(
   onDone: LocalJSXCommandOnDone,
-  _context: LocalJSXCommandContext,
+  context: LocalJSXCommandContext,
   args?: string,
 ): Promise<React.ReactNode> {
   const trimmed = (args || '').trim()
+  const onLoginSuccess = () => { context.onChangeAPIKey() }
 
   // /login --list
   if (trimmed === '--list') {
@@ -301,12 +427,13 @@ export async function call(
       config.activeProvider = providerId
       saveConfig(config)
       applyProvider(providerId, existing)
-      onDone(`Провайдер переключён на ${def.label}.\nПерезапустите nekofree.`, { display: 'system' })
+      onLoginSuccess()
+      onDone(`Провайдер переключён на ${def.label}.`, { display: 'system' })
       return null
     }
 
     // Not configured yet — open wizard for this provider
-    return <LoginWizard onDone={onDone} initialProvider={providerId} />
+    return <LoginWizard onDone={onDone} onLoginSuccess={onLoginSuccess} initialProvider={providerId} />
   }
 
   // /login --url <url> (legacy compat → custom provider)
@@ -322,7 +449,8 @@ export async function call(
     config.activeProvider = 'custom'
     saveConfig(config)
     applyProvider('custom', config.providers.custom)
-    onDone(`Custom endpoint: ${url}\nПерезапустите nekofree.`, { display: 'system' })
+    onLoginSuccess()
+    onDone(`Custom endpoint: ${url}`, { display: 'system' })
     return null
   }
 
@@ -339,7 +467,8 @@ export async function call(
     config.providers[active]!.model = model
     saveConfig(config)
     process.env.ANTHROPIC_MODEL = model
-    onDone(`Модель: ${model} (провайдер: ${active})\nПерезапустите nekofree.`, { display: 'system' })
+    onLoginSuccess()
+    onDone(`Модель: ${model} (провайдер: ${active})`, { display: 'system' })
     return null
   }
 
@@ -358,13 +487,14 @@ export async function call(
     applyProvider(active, config.providers[active]!)
 
     const def = getProvider(active)
+    onLoginSuccess()
     onDone(
-      `API-ключ сохранён для ${def?.label || active}: ${maskKey(trimmed)}\nПерезапустите nekofree.`,
+      `API-ключ сохранён для ${def?.label || active}: ${maskKey(trimmed)}`,
       { display: 'system' },
     )
     return null
   }
 
   // /login — interactive wizard
-  return <LoginWizard onDone={onDone} />
+  return <LoginWizard onDone={onDone} onLoginSuccess={onLoginSuccess} />
 }

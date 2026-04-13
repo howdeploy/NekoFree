@@ -8,6 +8,7 @@ import {
   isClaudeAISubscriber,
   isCodexSubscriber,
 } from '../utils/auth.js'
+import { getAPIProvider } from '../utils/model/providers.js'
 
 export type VerificationStatus =
   | 'loading'
@@ -25,6 +26,10 @@ export type ApiKeyVerificationResult = {
 export function useApiKeyVerification(): ApiKeyVerificationResult {
   const [status, setStatus] = useState<VerificationStatus>(() => {
     if (!isAnthropicAuthEnabled() || isClaudeAISubscriber() || isCodexSubscriber()) {
+      // Codex/OpenAI provider is active but has no tokens — treat as missing
+      if (getAPIProvider() === 'openai' && !isCodexSubscriber()) {
+        return 'missing'
+      }
       return 'valid'
     }
     // Use skipRetrievingKeyFromApiKeyHelper to avoid executing apiKeyHelper
@@ -43,6 +48,11 @@ export function useApiKeyVerification(): ApiKeyVerificationResult {
 
   const verify = useCallback(async (): Promise<void> => {
     if (!isAnthropicAuthEnabled() || isClaudeAISubscriber() || isCodexSubscriber()) {
+      // Codex/OpenAI provider is active but has no tokens — treat as missing
+      if (getAPIProvider() === 'openai' && !isCodexSubscriber()) {
+        setStatus('missing')
+        return
+      }
       setStatus('valid')
       return
     }
