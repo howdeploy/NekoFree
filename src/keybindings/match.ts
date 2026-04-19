@@ -1,4 +1,5 @@
 import type { Key } from '../ink.js'
+import { remapLayoutChar } from './layoutRemap.js'
 import type { ParsedBinding, ParsedKeystroke } from './types.js'
 
 /**
@@ -42,7 +43,7 @@ export function getKeyName(input: string, key: Key): string | null {
   if (key.wheelDown) return 'wheeldown'
   if (key.home) return 'home'
   if (key.end) return 'end'
-  if (input.length === 1) return input.toLowerCase()
+  if (input.length === 1) return remapLayoutChar(input.toLowerCase())
   return null
 }
 
