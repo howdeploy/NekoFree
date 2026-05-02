@@ -242,6 +242,90 @@ export const PROVIDERS: ProviderDef[] = [
     envClear: clearAllProviderEnvVars,
   },
   {
+    id: 'kimi',
+    label: 'Kimi (Moonshot)',
+    description: 'Moonshot AI — Kimi K2, K2.5, K1.5 (api.moonshot.cn)',
+    baseUrl: 'https://api.moonshot.cn/v1',
+    fields: [
+      { key: 'apiKey', label: 'API Key', placeholder: 'sk-...', mask: true },
+    ],
+    models: [
+      { value: 'kimi-k2', label: 'Kimi K2', description: '256K context, MoE architecture' },
+      { value: 'kimi-k2.5', label: 'Kimi K2.5', description: 'Enhanced reasoning & coding' },
+      { value: 'kimi-k1.5', label: 'Kimi K1.5', description: 'Long-context specialist' },
+    ],
+    envSetup(config) {
+      clearAllProviderEnvVars()
+      process.env.NEKOFREE_OPENAI_COMPAT = '1'
+      process.env.ANTHROPIC_BASE_URL = 'https://api.moonshot.cn/v1'
+      if (config.apiKey) process.env.ANTHROPIC_API_KEY = config.apiKey
+    },
+    envClear: clearAllProviderEnvVars,
+  },
+  {
+    id: 'groq',
+    label: 'Groq',
+    description: 'Groq — сверхбыстрый inference: Llama, Mixtral, Gemma (groq.com)',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    fields: [
+      { key: 'apiKey', label: 'API Key', placeholder: 'gsk_...', mask: true },
+    ],
+    models: [
+      { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B', description: 'Meta Llama 3.3 70B' },
+      { value: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B', description: 'Mistral MoE 32K context' },
+      { value: 'gemma2-9b-it', label: 'Gemma 2 9B', description: 'Google Gemma 2' },
+    ],
+    envSetup(config) {
+      clearAllProviderEnvVars()
+      process.env.NEKOFREE_OPENAI_COMPAT = '1'
+      process.env.ANTHROPIC_BASE_URL = 'https://api.groq.com/openai/v1'
+      if (config.apiKey) process.env.ANTHROPIC_API_KEY = config.apiKey
+    },
+    envClear: clearAllProviderEnvVars,
+  },
+  {
+    id: 'together',
+    label: 'Together AI',
+    description: 'Together AI — inference для open-source моделей (together.xyz)',
+    baseUrl: 'https://api.together.xyz/v1',
+    fields: [
+      { key: 'apiKey', label: 'API Key', placeholder: 'sk-...', mask: true },
+    ],
+    models: [
+      { value: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', label: 'Llama 3.1 70B', description: 'Meta Llama 3.1 70B Turbo' },
+      { value: 'mistralai/Mixtral-8x7B-Instruct-v0.1', label: 'Mixtral 8x7B', description: 'Mistral MoE' },
+      { value: 'Qwen/Qwen2.5-72B-Instruct-Turbo', label: 'Qwen 2.5 72B', description: 'Alibaba Qwen 2.5' },
+    ],
+    envSetup(config) {
+      clearAllProviderEnvVars()
+      process.env.NEKOFREE_OPENAI_COMPAT = '1'
+      process.env.ANTHROPIC_BASE_URL = 'https://api.together.xyz/v1'
+      if (config.apiKey) process.env.ANTHROPIC_API_KEY = config.apiKey
+    },
+    envClear: clearAllProviderEnvVars,
+  },
+  {
+    id: 'deepseek',
+    label: 'DeepSeek',
+    description: 'DeepSeek — V3 и Reasoner модели (deepseek.com)',
+    baseUrl: 'https://api.deepseek.com/v1',
+    fields: [
+      { key: 'apiKey', label: 'API Key', placeholder: 'sk-...', mask: true },
+    ],
+    models: [
+      { value: 'deepseek-chat', label: 'DeepSeek V3', description: 'DeepSeek V3 chat' },
+      { value: 'deepseek-reasoner', label: 'DeepSeek R1', description: 'Reasoning model' },
+      { value: 'deepseek-coder', label: 'DeepSeek Coder', description: 'Code completion model' },
+    ],
+    envSetup(config) {
+      clearAllProviderEnvVars()
+      process.env.NEKOFREE_OPENAI_COMPAT = '1'
+      process.env.ANTHROPIC_BASE_URL = 'https://api.deepseek.com/v1'
+      if (config.apiKey) process.env.ANTHROPIC_API_KEY = config.apiKey
+    },
+    envClear: clearAllProviderEnvVars,
+  },
+  {
     id: 'custom',
     label: 'Свой endpoint',
     description: 'Любой Anthropic-совместимый или OpenAI-совместимый API',

@@ -18,6 +18,7 @@ import {
 } from '../../nekofree/auth/storage.js'
 import { runOAuthFlow } from '../../nekofree/auth/oauth-client.js'
 import { validateConnection } from '../../nekofree/auth/validator.js'
+import { AUTH_PRESETS, buildConnectionFromPreset } from '../../nekofree/auth/presets.js'
 import type { AuthConnection } from '../../nekofree/auth/types.js'
 import {
   PROVIDERS,
@@ -144,6 +145,8 @@ type WizardState =
   | { step: 'field'; providerId: string; fieldIdx: number; values: Record<string, string> }
   | { step: 'oauth'; providerId: string }
   | { step: 'generic-select' }
+  | { step: 'generic-preset' }
+  | { step: 'generic-preset-credential'; presetId: string }
   | { step: 'generic-create'; fieldIdx: number; values: Record<string, string>; authType?: string }
   | { step: 'generic-oauth'; connection: AuthConnection }
 
@@ -325,9 +328,7 @@ function LoginWizard({ onDone, onLoginSuccess, initialProvider }: {
 
   const handleGenericSelect = React.useCallback((connectionId: string) => {
     if (connectionId === '__new__') {
-      setState({ step: 'generic-create', fieldIdx: 0, values: {} })
-      setInputValue('')
-      setCursorOffset(0)
+      setState({ step: 'generic-preset' })
       return
     }
     // Activate existing connection
@@ -416,6 +417,46 @@ function LoginWizard({ onDone, onLoginSuccess, initialProvider }: {
         { display: 'system' },
       )
     }
+  }, [state, config, onDone])
+
+  // ── Generic preset handlers ──
+
+  const handlePresetSelect = React.useCallback((presetId: string) => {
+    if (presetId === '__custom__') {
+      setState({ step: 'generic-create', fieldIdx: 0, values: {} })
+      setInputValue('')
+      setCursorOffset(0)
+      return
+    }
+    const preset = AUTH_PRESETS.find(p => p.id === presetId)
+    if (!preset) return
+    if (preset.authType === 'oauth2') {
+      // OAuth2 presets not yet supported via presets flow
+      onDone('OAuth2 presets требуют ручной настройки через Custom.', { display: 'system' })
+      return
+    }
+    setState({ step: 'generic-preset-credential', presetId })
+    setInputValue('')
+    setCursorOffset(0)
+  }, [onDone])
+
+  const handlePresetCredentialSubmit = React.useCallback((input: string) => {
+    if (state.step !== 'generic-preset-credential') return
+    const preset = AUTH_PRESETS.find(p => p.id === state.presetId)
+    if (!preset) return
+    const trimmed = input.trim()
+    const conn = buildConnectionFromPreset(preset, trimmed)
+    saveConnection(conn)
+
+    config.activeProvider = 'generic'
+    config.providers.generic = { connectionId: conn.id }
+    saveConfig(config)
+    applyProvider('generic', config.providers.generic!)
+    onLoginSuccess()
+    onDone(
+      `Generic Auth: ${conn.name} (${conn.auth.type})`,
+      { display: 'system' },
+    )
   }, [state, config, onDone])
 
   // ── Generic OAuth completion ──
@@ -646,6 +687,69 @@ function LoginWizard({ onDone, onLoginSuccess, initialProvider }: {
               <Text dimColor>ESC для возврата</Text>
             </Box>
           )}
+        </Box>
+      </Dialog>
+    )
+  }
+
+  // ── Generic Auth: preset selection ──
+
+  if (state.step === 'generic-preset') {
+    const presetOptions = AUTH_PRESETS.map(p => ({
+      label: p.name,
+      value: p.id,
+      description: p.description,
+    }))
+    presetOptions.push({
+      label: '→ Свой вариант (ручная настройка)',
+      value: '__custom__',
+      description: 'Произвольный API с полным контролем',
+    })
+
+    return (
+      <Dialog title="Generic Auth — выбор сервиса" onCancel={() => setState({ step: 'generic-select' })}>
+        <Box flexDirection="column">
+          <Box marginBottom={1}>
+            <Text>Выберите популярный сервис:</Text>
+          </Box>
+          <Select
+            options={presetOptions}
+            onChange={handlePresetSelect}
+            onCancel={() => setState({ step: 'generic-select' })}
+            visibleOptionCount={8}
+            layout="compact-vertical"
+          />
+        </Box>
+      </Dialog>
+    )
+  }
+
+  // ── Generic Auth: preset credential ──
+
+  if (state.step === 'generic-preset-credential') {
+    const preset = AUTH_PRESETS.find(p => p.id === state.presetId)!
+    const placeholder = preset.authType === 'basic' ? 'user:password' : 'sk-...'
+    const label = preset.authType === 'basic' ? 'Логин:пароль' : 'API Key / Token'
+
+    return (
+      <Dialog title={`${preset.name} — авторизация`} onCancel={() => setState({ step: 'generic-preset' })}>
+        <Box flexDirection="column">
+          <Box marginBottom={1}>
+            <Text>{label}:</Text>
+            <Text dimColor>{preset.description}</Text>
+          </Box>
+          <TextInput
+            value={inputValue}
+            onChange={setInputValue}
+            onSubmit={handlePresetCredentialSubmit}
+            placeholder={placeholder}
+            mask={preset.authType !== 'apiKey' && preset.authType !== 'bearer' ? undefined : '*'}
+            focus={true}
+            columns={columns}
+            cursorOffset={cursorOffset}
+            onChangeCursorOffset={setCursorOffset}
+            showCursor={true}
+          />
         </Box>
       </Dialog>
     )
