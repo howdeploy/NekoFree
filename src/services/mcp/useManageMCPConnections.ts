@@ -807,7 +807,7 @@ export function useManageMCPConnections(
           }
           if (s.type === 'connected') {
             s.client.onclose = undefined
-            void clearServerCache(s.name, s.config).catch(() => {})
+            void clearServerCache(s.name, s.config).catch((err: unknown) => { console.warn('[nekofree] clearServerCache error:', err); })
           }
         }
 

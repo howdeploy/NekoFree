@@ -68,7 +68,7 @@ function appendToFile(filePath: string, entries: string[]): void {
   if (entries.length === 0) return
   fs.mkdir(dirname(filePath), { recursive: true })
     .then(() => fs.appendFile(filePath, entries.join('\n') + '\n'))
-    .catch(() => {})
+    .catch((err: unknown) => { console.warn('[nekofree] dumpPrompts append error:', err); })
 }
 
 function initFingerprint(req: Record<string, unknown>): string {

@@ -2395,7 +2395,7 @@ async function loadPluginFromMarketplaceEntry(
       logForDebugging(
         `Failed to extract plugin ZIP ${pluginPath}, deleting corrupt file: ${error}`,
       )
-      await rm(pluginPath, { force: true }).catch(() => {})
+      await rm(pluginPath, { force: true }).catch((err: unknown) => { console.warn('[nekofree] rm corrupt plugin error:', err); })
       throw error
     }
   }
