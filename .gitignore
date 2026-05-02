@@ -6,3 +6,9 @@ dist/
 /cli-dev
 openclaw/
 skills/_bin/gstack-global-discover
+
+# Secrets — never commit
+.env*
+*.pem
+*.key
+.nekofree/
