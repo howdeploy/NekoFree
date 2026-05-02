@@ -17,6 +17,8 @@
 | `gateway.ts` | Утилиты nekocode.app gateway (CCH signing и т.д.) |
 | `adapters/` | Thin adapters к legacy-модулям Claude Code |
 | `auth/` | Generic Auth Framework — любые API и подписки (API Key, Bearer, OAuth2, Basic) |
+| `auth/oauth-client.ts` | Generic OAuth 2.0 client с PKCE + browser flow + auto-refresh |
+| `auth/tool.ts` | Helper для вызова API из skills/tools (`callConnectionApi`) |
 | `providers.ts` | Чистые типы и helpers для multi-provider системы |
 
 ## Type-check

@@ -6,6 +6,7 @@
 
 import type { AuthConnection, RequestOptions } from "./types.js"
 import { saveConnection } from "./storage.js"
+import { refreshAccessToken } from "./oauth-client.js"
 
 function buildAuthHeaders(conn: AuthConnection): Record<string, string> {
 	switch (conn.auth.type) {
@@ -63,15 +64,39 @@ export class AuthConnector {
 		return { ...this.connection }
 	}
 
+	/** Refresh OAuth2 token if expired or about to expire (5 min buffer) */
+	async refreshIfNeeded(): Promise<void> {
+		if (this.connection.auth.type !== "oauth2") return
+		const auth = this.connection.auth
+		if (!auth.expiresAt || !auth.refreshToken) return
+		const bufferMs = 5 * 60 * 1000 // 5 minutes
+		if (Date.now() + bufferMs < auth.expiresAt) return
+
+		try {
+			const tokens = await refreshAccessToken(this.connection)
+			this.connection.auth = {
+				...auth,
+				accessToken: tokens.accessToken,
+				refreshToken: tokens.refreshToken || auth.refreshToken,
+				expiresAt: tokens.expiresIn ? Date.now() + tokens.expiresIn * 1000 : undefined,
+			}
+			saveConnection(this.connection)
+		} catch {
+			// Refresh failed — we'll try the request with current token anyway
+		}
+	}
+
 	/** Perform an authenticated fetch */
 	async fetch(input: string | URL, init?: RequestInit & RequestOptions): Promise<Response> {
+		await this.refreshIfNeeded()
+
 		const url = buildUrl(this.connection, input, init)
 		const urlWithQuery = injectApiKeyQuery(this.connection, url)
 
 		const authHeaders = buildAuthHeaders(this.connection)
-		const mergedHeaders: Record<string, string> = {
-			...authHeaders,
-			...init?.headers,
+		const mergedHeaders = new Headers(init?.headers)
+		for (const [key, value] of Object.entries(authHeaders)) {
+			mergedHeaders.set(key, value)
 		}
 
 		// Update lastUsedAt

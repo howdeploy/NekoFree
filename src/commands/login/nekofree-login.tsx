@@ -16,6 +16,8 @@ import {
   loadConnection,
   saveConnection,
 } from '../../nekofree/auth/storage.js'
+import { runOAuthFlow } from '../../nekofree/auth/oauth-client.js'
+import { validateConnection } from '../../nekofree/auth/validator.js'
 import type { AuthConnection } from '../../nekofree/auth/types.js'
 import {
   PROVIDERS,
@@ -143,6 +145,7 @@ type WizardState =
   | { step: 'oauth'; providerId: string }
   | { step: 'generic-select' }
   | { step: 'generic-create'; fieldIdx: number; values: Record<string, string>; authType?: string }
+  | { step: 'generic-oauth'; connection: AuthConnection }
 
 function LoginWizard({ onDone, onLoginSuccess, initialProvider }: {
   onDone: LocalJSXCommandOnDone
@@ -376,9 +379,20 @@ function LoginWizard({ onDone, onLoginSuccess, initialProvider }: {
           auth = { type: 'basic', username: user || '', password: pass || '' }
           break
         }
-        case 'oauth2':
+        case 'oauth2': {
           auth = { type: 'oauth2', clientId: newValues.credential || '', accessToken: '' }
-          break
+          const conn: AuthConnection = {
+            id: newValues.id || 'default',
+            name: newValues.name || newValues.id || 'Untitled',
+            baseUrl: newValues.baseUrl || undefined,
+            auth,
+            createdAt: new Date().toISOString(),
+          }
+          saveConnection(conn)
+          // Launch browser OAuth flow
+          setState({ step: 'generic-oauth', connection: conn })
+          return
+        }
         default:
           auth = { type: 'bearer', token: newValues.credential || '' }
       }
@@ -403,6 +417,22 @@ function LoginWizard({ onDone, onLoginSuccess, initialProvider }: {
       )
     }
   }, [state, config, onDone])
+
+  // ── Generic OAuth completion ──
+
+  const handleGenericOAuthDone = React.useCallback(async (conn: AuthConnection) => {
+    const health = await validateConnection(conn)
+    config.activeProvider = 'generic'
+    config.providers.generic = { connectionId: conn.id }
+    saveConfig(config)
+    applyProvider('generic', config.providers.generic!)
+    onLoginSuccess()
+    const healthMsg = health.ok ? '✓ Health check passed' : `⚠ Health check: ${health.error}`
+    onDone(
+      `OAuth авторизация завершена: ${conn.name}\n${healthMsg}`,
+      { display: 'system' },
+    )
+  }, [config, onDone])
 
   // ── Render ──
 
@@ -561,6 +591,61 @@ function LoginWizard({ onDone, onLoginSuccess, initialProvider }: {
             onChangeCursorOffset={setCursorOffset}
             showCursor={true}
           />
+        </Box>
+      </Dialog>
+    )
+  }
+
+  // ── Generic OAuth browser flow ──
+
+  if (state.step === 'generic-oauth') {
+    const [oauthStatus, setOauthStatus] = React.useState<'starting' | 'waiting' | 'success' | 'error'>('starting')
+    const [oauthUrl, setOauthUrl] = React.useState('')
+    const [oauthError, setOauthError] = React.useState('')
+
+    React.useEffect(() => {
+      let cancelled = false
+      void (async () => {
+        try {
+          const updated = await runOAuthFlow(state.connection, (url) => {
+            if (!cancelled) {
+              setOauthUrl(url)
+              setOauthStatus('waiting')
+            }
+          })
+          if (!cancelled) {
+            setOauthStatus('success')
+            await handleGenericOAuthDone(updated)
+          }
+        } catch (err) {
+          if (!cancelled) {
+            setOauthError((err as Error).message)
+            setOauthStatus('error')
+          }
+        }
+      })()
+      return () => { cancelled = true }
+    }, [state.connection])
+
+    return (
+      <Dialog title="Generic OAuth — авторизация" onCancel={() => setState({ step: 'generic-select' })}>
+        <Box flexDirection="column">
+          {oauthStatus === 'starting' && (
+            <Box><Spinner /><Text> Запуск OAuth...</Text></Box>
+          )}
+          {oauthStatus === 'waiting' && (
+            <Box flexDirection="column">
+              <Text>Откройте ссылку в браузере:</Text>
+              <Text color="cyan">{oauthUrl}</Text>
+              <Box marginTop={1}><Text dimColor>Ожидание ответа... (ESC для отмены)</Text></Box>
+            </Box>
+          )}
+          {oauthStatus === 'error' && (
+            <Box flexDirection="column">
+              <Text color="red">Ошибка: {oauthError}</Text>
+              <Text dimColor>ESC для возврата</Text>
+            </Box>
+          )}
         </Box>
       </Dialog>
     )

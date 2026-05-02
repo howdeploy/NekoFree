@@ -84,5 +84,5 @@ export interface RequestOptions {
 	/** Override the connection's baseUrl */
 	baseUrl?: string
 	/** Additional headers to merge */
-	headers?: Record<string, string>
+	headers?: HeadersInit
 }
