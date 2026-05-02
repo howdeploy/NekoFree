@@ -105,8 +105,8 @@ function translateMessages(
             }
           }
         }
-        if (parts.length === 1 && parts[0].type === 'text') {
-          out.push({ role: 'user', content: parts[0].text as string })
+        if (parts.length === 1 && parts[0]!.type === 'text') {
+          out.push({ role: 'user', content: parts[0]!.text as string })
         } else if (parts.length > 0) {
           out.push({ role: 'user', content: parts })
         }
@@ -305,7 +305,7 @@ async function translateStream(
             const choices = chunk.choices as Array<Record<string, unknown>> | undefined
             if (!choices?.length) continue
 
-            const ch = choices[0]
+            const ch = choices[0]!
             const delta = ch.delta as Record<string, unknown> | undefined
 
             if (ch.finish_reason) finishReason = ch.finish_reason as string
@@ -406,10 +406,10 @@ export function createOpenAIChatFetch(
   baseUrl: string,
   apiKey: string,
   options?: { stripImages?: boolean },
-): (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> {
+): (input: string | URL | Request, init?: RequestInit) => Promise<Response> {
   const strip = options?.stripImages ?? false
 
-  return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  return async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
     const url = input instanceof Request ? input.url : String(input)
 
     // Only intercept /v1/messages calls from the Anthropic SDK

@@ -18,6 +18,7 @@
     "compile": "bun run ./scripts/build.ts --compile",
     "dev": "bun run ./src/entrypoints/cli.tsx",
     "typecheck": "tsc --noEmit",
+    "typecheck:nekofree": "tsc -p src/nekofree/tsconfig.json --noEmit",
     "lint": "biome check src/ scripts/",
     "lint:fix": "biome check --fix src/ scripts/",
     "format": "biome format src/ scripts/",
