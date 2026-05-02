@@ -152,12 +152,17 @@ try {
     if (!process.env.ANTHROPIC_BASE_URL) process.env.ANTHROPIC_BASE_URL = 'https://api.z.ai/api/anthropic';
     if (!process.env.ANTHROPIC_API_KEY && _nfPc.apiKey) process.env.ANTHROPIC_API_KEY = _nfPc.apiKey;
     if (!process.env.ANTHROPIC_MODEL && !_nfPc.model) process.env.ANTHROPIC_MODEL = 'glm-4.7';
+  } else if (_nfActive === 'fireworks') {
+    process.env.NEKOFREE_OPENAI_COMPAT = '1';
+    if (!process.env.ANTHROPIC_BASE_URL) process.env.ANTHROPIC_BASE_URL = 'https://api.fireworks.ai/inference/v1';
+    if (!process.env.ANTHROPIC_API_KEY && _nfPc.apiKey) process.env.ANTHROPIC_API_KEY = _nfPc.apiKey;
   } else if (_nfActive === 'opencode') {
     if (!process.env.ANTHROPIC_BASE_URL) process.env.ANTHROPIC_BASE_URL = 'https://api.opencode.ai/v1';
     if (!process.env.ANTHROPIC_API_KEY && _nfPc.apiKey) process.env.ANTHROPIC_API_KEY = _nfPc.apiKey;
   } else if (_nfActive === 'custom') {
     if (_nfPc.baseUrl && !process.env.ANTHROPIC_BASE_URL) process.env.ANTHROPIC_BASE_URL = _nfPc.baseUrl;
     if (!process.env.ANTHROPIC_API_KEY && _nfPc.apiKey) process.env.ANTHROPIC_API_KEY = _nfPc.apiKey;
+    if (_nfPc.openaiCompat === 'y' || _nfPc.openaiCompat === 'yes') process.env.NEKOFREE_OPENAI_COMPAT = '1';
   } else if (_nfActive === 'anthropic') {
     // Direct Anthropic — no custom base URL needed
     if (!process.env.ANTHROPIC_API_KEY && _nfPc.apiKey) process.env.ANTHROPIC_API_KEY = _nfPc.apiKey;

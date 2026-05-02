@@ -327,6 +327,23 @@ export async function getAnthropicClient({
     return new Anthropic(clientConfig)
   }
 
+  // ── OpenAI-compatible provider via Chat Completions adapter ────────
+  if (isEnvTruthy(process.env.NEKOFREE_OPENAI_COMPAT)) {
+    const { createOpenAIChatFetch } = await import('./openai-chat-fetch-adapter.js')
+    const chatFetch = createOpenAIChatFetch(
+      process.env.ANTHROPIC_BASE_URL || '',
+      process.env.ANTHROPIC_API_KEY || '',
+      { stripImages: !isEnvTruthy(process.env.NEKOFREE_VISION_SUPPORT) },
+    )
+    const oaiCompatConfig: ConstructorParameters<typeof Anthropic>[0] = {
+      apiKey: 'openai-compat-placeholder',
+      ...ARGS,
+      fetch: chatFetch as unknown as typeof globalThis.fetch,
+      ...(isDebugToStdErr() && { logger: createStderrLogger() }),
+    }
+    return new Anthropic(oaiCompatConfig)
+  }
+
   // Determine authentication method based on available tokens
   const clientConfig: ConstructorParameters<typeof Anthropic>[0] = {
     apiKey: isClaudeAISubscriber() ? null : apiKey || getAnthropicApiKey(),

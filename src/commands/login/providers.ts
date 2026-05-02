@@ -41,6 +41,8 @@ function clearAllProviderEnvVars(): void {
   delete process.env.CLAUDE_CODE_USE_VERTEX
   delete process.env.CLAUDE_CODE_USE_FOUNDRY
   delete process.env.CLAUDE_CODE_USE_OPENAI
+  delete process.env.NEKOFREE_OPENAI_COMPAT
+  delete process.env.NEKOFREE_VISION_SUPPORT
   delete process.env.AWS_REGION
   delete process.env.ANTHROPIC_VERTEX_PROJECT_ID
   delete process.env.CLOUD_ML_REGION
@@ -201,6 +203,30 @@ export const PROVIDERS: ProviderDef[] = [
     envClear: clearAllProviderEnvVars,
   },
   {
+    id: 'fireworks',
+    label: 'Fireworks AI',
+    description: 'Fireworks — быстрый inference: Qwen, GLM, Llama, DeepSeek (fireworks.ai)',
+    baseUrl: 'https://api.fireworks.ai/inference/v1',
+    fields: [
+      { key: 'apiKey', label: 'API Key', placeholder: 'fw_...', mask: true },
+    ],
+    models: [
+      { value: 'accounts/fireworks/models/qwen3-235b-a22b', label: 'Qwen3 235B', description: 'Qwen3 235B MoE flagship' },
+      { value: 'accounts/fireworks/models/deepseek-v3', label: 'DeepSeek V3', description: '671B MoE coding model' },
+      { value: 'accounts/fireworks/models/llama4-maverick-instruct-basic', label: 'Llama 4 Maverick', description: 'Meta Llama 4 400B MoE' },
+      { value: 'accounts/fireworks/models/llama-v3p3-70b-instruct', label: 'Llama 3.3 70B', description: 'Meta Llama 3.3 70B' },
+    ],
+    envSetup(config) {
+      clearAllProviderEnvVars()
+      process.env.NEKOFREE_OPENAI_COMPAT = '1'
+      process.env.ANTHROPIC_BASE_URL = 'https://api.fireworks.ai/inference/v1'
+      if (config.apiKey) process.env.ANTHROPIC_API_KEY = config.apiKey
+    },
+    envClear() {
+      clearAllProviderEnvVars()
+    },
+  },
+  {
     id: 'opencode',
     label: 'OpenCode',
     description: 'OpenCode gateway — кураторский набор моделей (opencode.ai)',
@@ -218,15 +244,19 @@ export const PROVIDERS: ProviderDef[] = [
   {
     id: 'custom',
     label: 'Свой endpoint',
-    description: 'Любой OpenAI-совместимый API или прокси',
+    description: 'Любой Anthropic-совместимый или OpenAI-совместимый API',
     fields: [
       { key: 'baseUrl', label: 'Base URL', placeholder: 'https://my-proxy.example.com/v1' },
       { key: 'apiKey', label: 'API Key', placeholder: 'sk-...', mask: true },
+      { key: 'openaiCompat', label: 'OpenAI-формат? (y/n)', placeholder: 'n' },
     ],
     envSetup(config) {
       clearAllProviderEnvVars()
       if (config.baseUrl) process.env.ANTHROPIC_BASE_URL = config.baseUrl
       if (config.apiKey) process.env.ANTHROPIC_API_KEY = config.apiKey
+      if (config.openaiCompat === 'y' || config.openaiCompat === 'yes') {
+        process.env.NEKOFREE_OPENAI_COMPAT = '1'
+      }
     },
     envClear: clearAllProviderEnvVars,
   },
