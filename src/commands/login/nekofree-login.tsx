@@ -12,6 +12,12 @@ import type { LocalJSXCommandOnDone } from '../../types/command.js'
 import type { LocalJSXCommandContext } from '../../commands.js'
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import {
+  listConnections,
+  loadConnection,
+  saveConnection,
+} from '../../nekofree/auth/storage.js'
+import type { AuthConnection } from '../../nekofree/auth/types.js'
+import {
   PROVIDERS,
   getProvider,
   migrateConfig,
@@ -135,6 +141,8 @@ type WizardState =
   | { step: 'select' }
   | { step: 'field'; providerId: string; fieldIdx: number; values: Record<string, string> }
   | { step: 'oauth'; providerId: string }
+  | { step: 'generic-select' }
+  | { step: 'generic-create'; fieldIdx: number; values: Record<string, string>; authType?: string }
 
 function LoginWizard({ onDone, onLoginSuccess, initialProvider }: {
   onDone: LocalJSXCommandOnDone
@@ -203,6 +211,12 @@ function LoginWizard({ onDone, onLoginSuccess, initialProvider }: {
     // OAuth providers → launch OAuth flow
     if (def.oauth) {
       setState({ step: 'oauth', providerId })
+      return
+    }
+
+    // Generic Auth provider → show connection selector
+    if (providerId === 'generic') {
+      setState({ step: 'generic-select' })
       return
     }
 
@@ -302,6 +316,94 @@ function LoginWizard({ onDone, onLoginSuccess, initialProvider }: {
     }
   }, [state, config, onDone])
 
+  // ── Generic Auth handlers ──
+
+  const genericConnections = React.useMemo(() => listConnections(), [state])
+
+  const handleGenericSelect = React.useCallback((connectionId: string) => {
+    if (connectionId === '__new__') {
+      setState({ step: 'generic-create', fieldIdx: 0, values: {} })
+      setInputValue('')
+      setCursorOffset(0)
+      return
+    }
+    // Activate existing connection
+    config.activeProvider = 'generic'
+    config.providers.generic = { connectionId }
+    saveConfig(config)
+    applyProvider('generic', config.providers.generic!)
+    onLoginSuccess()
+    const conn = loadConnection(connectionId)
+    onDone(
+      `Generic Auth: ${conn?.name || connectionId} (${conn?.auth.type || 'unknown'})`,
+      { display: 'system' },
+    )
+  }, [config, onDone])
+
+  const handleGenericCreateSubmit = React.useCallback((input: string) => {
+    if (state.step !== 'generic-create') return
+    const trimmed = input.trim()
+
+    const fields = ['id', 'name', 'baseUrl', 'authType', 'credential']
+    const field = fields[state.fieldIdx]!
+    const newValues = { ...state.values, [field]: trimmed }
+    const nextIdx = state.fieldIdx + 1
+
+    if (field === 'authType') {
+      setState({ ...state, fieldIdx: nextIdx, values: newValues, authType: trimmed })
+      setInputValue('')
+      setCursorOffset(0)
+      return
+    }
+
+    if (nextIdx < fields.length) {
+      setState({ ...state, fieldIdx: nextIdx, values: newValues })
+      setInputValue('')
+      setCursorOffset(0)
+    } else {
+      // All fields filled — create connection
+      const authType = (state.authType || newValues.authType || 'bearer') as AuthConnection['auth']['type']
+      let auth: AuthConnection['auth']
+      switch (authType) {
+        case 'apiKey':
+          auth = { type: 'apiKey', in: 'header', name: 'X-API-Key', value: newValues.credential || '' }
+          break
+        case 'bearer':
+          auth = { type: 'bearer', token: newValues.credential || '' }
+          break
+        case 'basic': {
+          const [user, pass] = (newValues.credential || ':').split(':')
+          auth = { type: 'basic', username: user || '', password: pass || '' }
+          break
+        }
+        case 'oauth2':
+          auth = { type: 'oauth2', clientId: newValues.credential || '', accessToken: '' }
+          break
+        default:
+          auth = { type: 'bearer', token: newValues.credential || '' }
+      }
+
+      const conn: AuthConnection = {
+        id: newValues.id || 'default',
+        name: newValues.name || newValues.id || 'Untitled',
+        baseUrl: newValues.baseUrl || undefined,
+        auth,
+        createdAt: new Date().toISOString(),
+      }
+      saveConnection(conn)
+
+      config.activeProvider = 'generic'
+      config.providers.generic = { connectionId: conn.id }
+      saveConfig(config)
+      applyProvider('generic', config.providers.generic!)
+      onLoginSuccess()
+      onDone(
+        `Generic Auth создан: ${conn.name} (${auth.type})`,
+        { display: 'system' },
+      )
+    }
+  }, [state, config, onDone])
+
   // ── Render ──
 
   if (state.step === 'select') {
@@ -382,6 +484,84 @@ function LoginWizard({ onDone, onLoginSuccess, initialProvider }: {
           onDone={handleOAuthDone}
           forceLoginMethod={forceMethod}
         />
+      </Dialog>
+    )
+  }
+
+  // ── Generic Auth: select connection ──
+
+  if (state.step === 'generic-select') {
+    const connOptions = genericConnections.map(c => ({
+      label: `${c.name} (${c.id}) — ${c.auth.type}`,
+      value: c.id,
+      description: c.baseUrl || '—',
+    }))
+    connOptions.push({
+      label: '+ Создать новое подключение',
+      value: '__new__',
+      description: 'Настроить новый REST API',
+    })
+
+    return (
+      <Dialog title="Generic Auth — выбор подключения" onCancel={handleCancel}>
+        <Box flexDirection="column">
+          <Box marginBottom={1}>
+            <Text>Выберите сохранённое подключение или создайте новое:</Text>
+          </Box>
+          <Select
+            options={connOptions}
+            onChange={handleGenericSelect}
+            onCancel={handleCancel}
+            visibleOptionCount={8}
+            layout="compact-vertical"
+          />
+        </Box>
+      </Dialog>
+    )
+  }
+
+  // ── Generic Auth: create connection ──
+
+  if (state.step === 'generic-create') {
+    const fields = ['id', 'name', 'baseUrl', 'authType', 'credential']
+    const labels: Record<string, string> = {
+      id: 'ID подключения (уникальный ключ)',
+      name: 'Название',
+      baseUrl: 'Base URL (опционально)',
+      authType: 'Тип авторизации (apiKey / bearer / basic / oauth2)',
+      credential: 'Ключ / токен / username:password',
+    }
+    const placeholders: Record<string, string> = {
+      id: 'my-api',
+      name: 'My API',
+      baseUrl: 'https://api.example.com',
+      authType: 'bearer',
+      credential: 'sk-... или user:pass',
+    }
+    const field = fields[state.fieldIdx]!
+    const stepText = ` (${state.fieldIdx + 1}/${fields.length})`
+
+    return (
+      <Dialog
+        title={`Новое подключение${stepText}`}
+        onCancel={() => setState({ step: 'generic-select' })}
+      >
+        <Box flexDirection="column">
+          <Box marginBottom={1}>
+            <Text>{labels[field]}:</Text>
+          </Box>
+          <TextInput
+            value={inputValue}
+            onChange={setInputValue}
+            onSubmit={handleGenericCreateSubmit}
+            placeholder={placeholders[field]}
+            focus={true}
+            columns={columns}
+            cursorOffset={cursorOffset}
+            onChangeCursorOffset={setCursorOffset}
+            showCursor={true}
+          />
+        </Box>
       </Dialog>
     )
   }

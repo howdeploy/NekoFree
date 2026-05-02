@@ -260,6 +260,54 @@ export const PROVIDERS: ProviderDef[] = [
     },
     envClear: clearAllProviderEnvVars,
   },
+  {
+    id: 'generic',
+    label: 'Generic Auth (любой API)',
+    description: 'GitHub, Stripe, Twilio, свой бэкенд — любой REST API с авторизацией',
+    fields: [
+      { key: 'connectionId', label: 'Connection ID', placeholder: 'my-api' },
+    ],
+    envSetup(config) {
+      clearAllProviderEnvVars()
+      const connectionId = config.connectionId
+      if (!connectionId) {
+        process.stderr.write('[nekofree] No connectionId configured for generic provider.\n')
+        return
+      }
+      try {
+        // Dynamic require to avoid circular deps at module load time
+        const { loadConnection } = require('../../nekofree/auth/storage.js')
+        const conn = loadConnection(connectionId)
+        if (!conn) {
+          process.stderr.write(`[nekofree] Connection "${connectionId}" not found. Run /login and select "Generic Auth" to create it.\n`)
+          return
+        }
+        process.env.NEKOFREE_ACTIVE_CONNECTION = conn.id
+        if (conn.baseUrl) process.env.NEKOFREE_ACTIVE_BASE_URL = conn.baseUrl
+        switch (conn.auth.type) {
+          case 'bearer':
+            process.env.NEKOFREE_ACTIVE_TOKEN = conn.auth.token
+            break
+          case 'apiKey':
+            process.env.NEKOFREE_ACTIVE_API_KEY = conn.auth.value
+            break
+          case 'basic': {
+            const encoded = Buffer.from(`${conn.auth.username}:${conn.auth.password}`).toString('base64')
+            process.env.NEKOFREE_ACTIVE_BASIC = encoded
+            break
+          }
+          case 'oauth2':
+            if (conn.auth.accessToken) {
+              process.env.NEKOFREE_ACTIVE_TOKEN = conn.auth.accessToken
+            }
+            break
+        }
+      } catch (e) {
+        process.stderr.write(`[nekofree] Failed to load generic connection: ${e}\n`)
+      }
+    },
+    envClear: clearAllProviderEnvVars,
+  },
 ]
 
 export function getProvider(id: string): ProviderDef | undefined {

@@ -102,6 +102,7 @@ describe("Provider registry", () => {
     expect(ids).toContain("console-oauth")
     expect(ids).toContain("codex-oauth")
     expect(ids).toContain("custom")
+    expect(ids).toContain("generic")
   })
 })
 
