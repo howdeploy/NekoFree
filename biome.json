@@ -34,6 +34,6 @@
 		}
 	},
 	"files": {
-		"includes": ["src/**", "scripts/**", "!src/vendor/**", "!src/ink/**", "!src/types/generated/**"]
+		"includes": ["src/**", "scripts/**", "!src/vendor/**", "!src/types/generated/**"]
 	}
 }
