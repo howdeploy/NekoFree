@@ -1,8 +1,8 @@
 node_modules/
 dist/
-nekofree
-nekofree-dev
-cli
-cli-dev
+/nekofree
+/nekofree-dev
+/cli
+/cli-dev
 openclaw/
 skills/_bin/gstack-global-discover
