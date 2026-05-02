@@ -253,9 +253,9 @@ export function createLSPServerInstance(
       logForDebugging(`LSP server instance started: ${name}`)
     } catch (error) {
       // Clean up the spawned child process on timeout/error
-      client.stop().catch(() => {})
+      client.stop().catch((err: unknown) => { console.warn('[nekofree] ignored error:', err); })
       // Prevent unhandled rejection from abandoned initialize promise
-      initPromise?.catch(() => {})
+      initPromise?.catch((err: unknown) => { console.warn('[nekofree] ignored error:', err); })
       state = 'error'
       lastError = error as Error
       logError(error)

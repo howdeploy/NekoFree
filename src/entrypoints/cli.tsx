@@ -93,15 +93,19 @@ try {
         // Only overwrite bundled skills, preserve user-added ones
         for (const _nfEntry of _nfReaddirSync(_nfBundledSkills, { withFileTypes: true })) {
           if (_nfEntry.isDirectory()) {
-            const _nfDstClean = _nfJoin(_nfSkillsDir, _nfEntry.name);
+            const _nfName = _nfEntry.name;
+            if (_nfName.includes('..') || _nfName.includes('/') || _nfName.includes('\\')) continue;
+            const _nfDstClean = _nfJoin(_nfSkillsDir, _nfName);
             if (_nfExists(_nfDstClean)) _rm(_nfDstClean, { recursive: true, force: true });
           }
         }
         for (const _nfEntry of _nfReaddirSync(_nfBundledSkills, { withFileTypes: true })) {
           if (!_nfEntry.isDirectory()) continue;
-          const _nfSrc = _nfJoin(_nfBundledSkills, _nfEntry.name);
-          const _nfDst = _nfJoin(_nfSkillsDir, _nfEntry.name);
-          if (!_nfExists(_nfJoin(_nfSrc, 'SKILL.md')) && _nfEntry.name !== '_bin') continue;
+          const _nfName = _nfEntry.name;
+          if (_nfName.includes('..') || _nfName.includes('/') || _nfName.includes('\\')) continue;
+          const _nfSrc = _nfJoin(_nfBundledSkills, _nfName);
+          const _nfDst = _nfJoin(_nfSkillsDir, _nfName);
+          if (!_nfExists(_nfJoin(_nfSrc, 'SKILL.md')) && _nfName !== '_bin') continue;
           _nfCpSync(_nfSrc, _nfDst, { recursive: true });
         }
         // Fix paths: replace ~/.claude/skills/gstack/bin/ with ~/.nekofree/skills/_bin/
@@ -109,7 +113,9 @@ try {
         const _binRef = _nfJoin(_nfSkillsDir, '_bin');
         for (const _nfSkillEntry of _rds(_nfSkillsDir, { withFileTypes: true })) {
           if (!_nfSkillEntry.isDirectory() || _nfSkillEntry.name === '_bin') continue;
-          const _nfSkillMd = _nfJoin(_nfSkillsDir, _nfSkillEntry.name, 'SKILL.md');
+          const _nfSkillName = _nfSkillEntry.name;
+          if (_nfSkillName.includes('..') || _nfSkillName.includes('/') || _nfSkillName.includes('\\')) continue;
+          const _nfSkillMd = _nfJoin(_nfSkillsDir, _nfSkillName, 'SKILL.md');
           if (_nfExists(_nfSkillMd)) {
             let _nfContent = _rfs(_nfSkillMd, 'utf-8');
             _nfContent = _nfContent.replace(/~\/\.claude\/skills\/gstack\/bin\//g, _binRef + '/');

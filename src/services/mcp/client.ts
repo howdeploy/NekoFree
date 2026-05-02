@@ -1056,9 +1056,9 @@ export const connectToServer = memoize(
             `Connection timeout triggered after ${elapsed}ms (limit: ${getConnectionTimeoutMs()}ms)`,
           )
           if (inProcessServer) {
-            inProcessServer.close().catch(() => {})
+            inProcessServer.close().catch((err: unknown) => { console.warn('[nekofree] ignored error:', err); })
           }
-          transport.close().catch(() => {})
+          transport.close().catch((err: unknown) => { console.warn('[nekofree] ignored error:', err); })
           reject(
             new TelemetrySafeError_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS(
               `MCP server "${name}" connection timed out after ${getConnectionTimeoutMs()}ms`,
@@ -1147,9 +1147,9 @@ export const connectToServer = memoize(
           })
         }
         if (inProcessServer) {
-          inProcessServer.close().catch(() => {})
+          inProcessServer.close().catch((err: unknown) => { console.warn('[nekofree] ignored error:', err); })
         }
-        transport.close().catch(() => {})
+        transport.close().catch((err: unknown) => { console.warn('[nekofree] ignored error:', err); })
         if (stderrOutput) {
           logMCPError(name, `Server stderr: ${stderrOutput}`)
         }
@@ -1629,7 +1629,7 @@ export const connectToServer = memoize(
       logMCPError(name, `Connection failed: ${errorMessage(error)}`)
 
       if (inProcessServer) {
-        inProcessServer.close().catch(() => {})
+        inProcessServer.close().catch((err: unknown) => { console.warn('[nekofree] ignored error:', err); })
       }
       return {
         name,
