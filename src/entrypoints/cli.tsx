@@ -208,7 +208,7 @@ if (!process.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS) {
 // the changed lines instead of the full content. Saves 80-95% tokens.
 // eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
 if (!process.env.READ_ONCE_DIFF) {
-  process.env.READ_ONCE_DIFF = '0';
+  process.env.READ_ONCE_DIFF = '1';
 }
 
 // Define MACRO global for development (normally injected by bun build --define)

@@ -165,12 +165,13 @@ describe("Provider definitions — content", () => {
     expect(p.models).toBeUndefined()
   })
 
-  test("custom: 2 fields (baseUrl + apiKey), no fixed baseUrl", () => {
+  test("custom: 3 fields (baseUrl + apiKey + openaiCompat), no fixed baseUrl", () => {
     const p = getProvider("custom")!
-    expect(p.fields).toHaveLength(2)
+    expect(p.fields).toHaveLength(3)
     const keys = p.fields.map((f) => f.key)
     expect(keys).toContain("baseUrl")
     expect(keys).toContain("apiKey")
+    expect(keys).toContain("openaiCompat")
     expect(p.baseUrl).toBeUndefined()
   })
 
