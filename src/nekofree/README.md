@@ -16,6 +16,7 @@
 | `types.ts` | Общие типы NekoFree (провайдеры, gateway, конфиг) |
 | `gateway.ts` | Утилиты nekocode.app gateway (CCH signing и т.д.) |
 | `adapters/` | Thin adapters к legacy-модулям Claude Code |
+| `auth/` | Generic Auth Framework — любые API и подписки (API Key, Bearer, OAuth2, Basic) |
 | `providers.ts` | Чистые типы и helpers для multi-provider системы |
 
 ## Type-check
