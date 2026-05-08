@@ -32,6 +32,14 @@ export default defineConfig({
   clean: true,
   shims: true,
   noExternal: ["jsonc-parser"],
+
+  esbuildOptions(options) {
+    options.logOverride = {
+      ...options.logOverride,
+      "suspicious-logical-operator": "silent",
+    };
+  },
+
   banner: {
     js: `#!/usr/bin/env node
 import { createRequire as __nekofreeCreateRequire } from "node:module";
