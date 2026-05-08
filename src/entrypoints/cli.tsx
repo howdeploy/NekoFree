@@ -109,21 +109,20 @@ try {
           _nfCpSync(_nfSrc, _nfDst, { recursive: true });
         }
         // Fix paths: replace ~/.claude/skills/gstack/bin/ with ~/.nekofree/skills/_bin/
-        const { readFileSync: _rfs, writeFileSync: _wfs, readdirSync: _rds } = require('node:fs');
         const _binRef = _nfJoin(_nfSkillsDir, '_bin');
-        for (const _nfSkillEntry of _rds(_nfSkillsDir, { withFileTypes: true })) {
+        for (const _nfSkillEntry of _nfReaddirSync(_nfSkillsDir, { withFileTypes: true })) {
           if (!_nfSkillEntry.isDirectory() || _nfSkillEntry.name === '_bin') continue;
           const _nfSkillName = _nfSkillEntry.name;
           if (_nfSkillName.includes('..') || _nfSkillName.includes('/') || _nfSkillName.includes('\\')) continue;
           const _nfSkillMd = _nfJoin(_nfSkillsDir, _nfSkillName, 'SKILL.md');
           if (_nfExists(_nfSkillMd)) {
-            let _nfContent = _rfs(_nfSkillMd, 'utf-8');
+            let _nfContent = _nfReadSync(_nfSkillMd, 'utf-8');
             _nfContent = _nfContent.replace(/~\/\.claude\/skills\/gstack\/bin\//g, _binRef + '/');
             _nfContent = _nfContent.replace(/\$\{CLAUDE_SKILL_DIR\}\/\.\.\/careful\/bin\//g, _binRef + '/');
             _nfContent = _nfContent.replace(/\$\{CLAUDE_SKILL_DIR\}\/\.\.\/freeze\/bin\//g, _binRef + '/');
             _nfContent = _nfContent.replace(/\$\{CLAUDE_SKILL_DIR\}\/\.\.\/document-release\/SKILL\.md/g, _nfJoin(_nfSkillsDir, 'document-release', 'SKILL.md'));
             _nfContent = _nfContent.replace(/\$\{CLAUDE_SKILL_DIR\}\/\.\.\/qa-only\/SKILL\.md/g, _nfJoin(_nfSkillsDir, 'qa-only', 'SKILL.md'));
-            _wfs(_nfSkillMd, _nfContent);
+            _nfWriteSync(_nfSkillMd, _nfContent);
           }
         }
       }
