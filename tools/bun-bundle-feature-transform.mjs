@@ -48,7 +48,7 @@ export function bunBundleFeatureTransformPlugin({ features = [] } = {}) {
         );
 
         // Warn if bun:bundle still referenced (likely in comments/strings)
-        if (source.includes("bun:bundle")) {
+        if (source.includes("bun:bundle") && process.env.NEKOFREE_NODE_BUILD_VERBOSE === "1") {
           console.warn(
             `[bun-bundle-transform] Note: ${args.path} still contains "bun:bundle" ` +
               `(likely in comments/strings, not code)`
