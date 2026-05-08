@@ -24,7 +24,9 @@
     "format": "biome format src/ scripts/",
     "format:fix": "biome format --write src/ scripts/",
     "test": "bun test tests/",
-    "test:smoke": "bun test tests/smoke.test.ts"
+    "test:smoke": "bun test tests/smoke.test.ts",
+    "build:node:experimental": "tsup --config tsup.node.config.ts",
+    "start:node": "node dist-node/cli.js"
   },
   "dependencies": {
     "@alcalzone/ansi-tokenize": "^0.3.0",
@@ -125,6 +127,8 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.11",
     "@types/bun": "^1.3.11",
-    "typescript": "^6.0.2"
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
   }
 }
